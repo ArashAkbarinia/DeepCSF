@@ -14,10 +14,10 @@ from . import resnet
 
 
 def get_mean_std(colour_space, colour_vision=None):
-    if colour_space in ['rgb']:
+    if colour_space in ['imagenet_rgb']:
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-    elif colour_space in ['grey3'] or colour_vision in ['trichromat']:
+    elif colour_space in ['rgb', 'grey3'] or colour_vision in ['trichromat']:
         mean = [0.5, 0.5, 0.5]
         std = [0.25, 0.25, 0.25]
     elif colour_space in ['grey'] or colour_vision in ['monochromat']:

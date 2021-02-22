@@ -46,11 +46,15 @@ def _adjust_contrast(image, amount):
     assert np.all(amount >= 0.0), 'contrast_level too low.'
     assert np.all(amount <= 1.0), 'contrast_level too high.'
 
-    image = np.float32(image) / 255
+    is_uint8 = image.dtype == 'uint8'
+    if is_uint8:
+        image = np.float32(image) / 255
     image_contrast = (1 - amount) / 2.0 + np.multiply(image, amount)
-    image_contrast *= 255
+    if is_uint8:
+        image_contrast *= 255
+        image_contrast = np.uint8(image_contrast)
 
-    return np.uint8(image_contrast)
+    return image_contrast
 
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
@@ -108,15 +112,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img0 = _adjust_contrast(img0, contrast0)
     img1 = _adjust_contrast(img1, contrast1)
 
-    if mask_image == 'gaussian':
-        img0 -= 0.5
-        img0 = img0 * _gauss_img(img0.shape)
-        img0 += 0.5
-        img1 -= 0.5
-        img1 = img1 * _gauss_img(img1.shape)
-        img1 += 0.5
-
-    # adding the avgerage illuminant
+    # multiplying by the illuminant
     if illuminant_range is None:
         illuminant_range = [1e-4, 1.0]
     if type(illuminant_range) in (list, tuple):
@@ -132,6 +128,15 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     # is ill_val is very small, the image becomes very dark
     img0 *= ill_val
     img1 *= ill_val
+    half_ill = ill_val / 2
+
+    if mask_image == 'gaussian':
+        img0 -= half_ill
+        img0 = img0 * _gauss_img(img0.shape)
+        img0 += half_ill
+        img1 -= half_ill
+        img1 = img1 * _gauss_img(img1.shape)
+        img1 += half_ill
 
     if post_transform is not None:
         img0, img1 = post_transform([img0, img1])
