@@ -55,7 +55,7 @@ def _adjust_contrast(image, amount):
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     avg_illuminant=0, current_param=None):
+                     illuminant_range=1.0, current_param=None):
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
     img1 = img0.copy()
 
@@ -117,12 +117,21 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img1 += 0.5
 
     # adding the avgerage illuminant
-    if avg_illuminant is None:
-        half_max_contrast = max(contrast0, contrast1) / 2
-        ill_gamut = (0.5 - half_max_contrast)
-        avg_illuminant = np.random.uniform(low=-ill_gamut, high=ill_gamut)
-    img0 += avg_illuminant
-    img1 += avg_illuminant
+    if illuminant_range is None:
+        illuminant_range = [1e-4, 1.0]
+    if type(illuminant_range) in (list, tuple):
+        if len(illuminant_range) == 1:
+            ill_val = illuminant_range[0]
+        else:
+            ill_val = np.random.uniform(
+                low=illuminant_range[0], high=illuminant_range[1]
+            )
+    else:
+        ill_val = illuminant_range
+    # we simulate the illumination with multiplication
+    # is ill_val is very small, the image becomes very dark
+    img0 *= ill_val
+    img1 *= ill_val
 
     if post_transform is not None:
         img0, img1 = post_transform([img0, img1])
@@ -160,7 +169,7 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
                  vision_type='trichromat', mask_image=None,
-                 avg_illuminant=0, train_params=None):
+                 illuminant_range=1.0, train_params=None):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
@@ -169,7 +178,7 @@ class AfcDataset(object):
         self.mask_image = mask_image
         self.post_transform = post_transform
         self.pre_transform = pre_transform
-        self.avg_illuminant = avg_illuminant
+        self.illuminant_range = illuminant_range
         if train_params is None:
             self.train_params = train_params
         else:
@@ -193,7 +202,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.avg_illuminant
+            self.same_transforms, self.p, self.illuminant_range
         )
 
         return img_out, contrast_target, path
@@ -222,7 +231,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.avg_illuminant,
+            self.same_transforms, self.p, self.illuminant_range,
             current_param=current_param
         )
 
@@ -230,18 +239,18 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
 
 
 def _create_samples(samples):
-    if 'avg_illuminant' in samples:
-        avg_illuminant = samples['avg_illuminant']
-        del samples['avg_illuminant']
+    if 'illuminant_range' in samples:
+        illuminant_range = samples['illuminant_range']
+        del samples['illuminant_range']
     else:
-        avg_illuminant = 0
+        illuminant_range = 1.0
     settings = samples
     settings['lenghts'] = (
         len(settings['amp']), len(settings['lambda_wave']),
         len(settings['theta']), len(settings['rho']), len(settings['side'])
     )
     num_samples = np.prod(np.array(settings['lenghts']))
-    return num_samples, settings, avg_illuminant
+    return num_samples, settings, illuminant_range
 
 
 class GratingImages(AfcDataset, torch_data.Dataset):
@@ -253,7 +262,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
             (
-                self.samples, self.settings, self.avg_illuminant
+                self.samples, self.settings, self.illuminant_range
             ) = _create_samples(samples)
         else:
             self.samples = samples
@@ -358,9 +367,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
-        # adding the avgerage illuminant
-        img0 += self.avg_illuminant
-        img1 += self.avg_illuminant
+        # multiplying with the illuminant value
+        img0 *= self.illuminant_range
+        img1 *= self.illuminant_range
 
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:

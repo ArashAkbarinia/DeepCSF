@@ -101,8 +101,7 @@ def _main_worker(args):
     if args.train_params is not None:
         args.workers = 0
         shuffle = False
-        # FIXME
-        args.avg_illuminant = 0
+        args.illuminant_range = 1.0
     else:
         shuffle = True
 
@@ -113,7 +112,7 @@ def _main_worker(args):
         'vision_type': args.vision_type,
         'mask_image': 'gaussian',
         'contrasts': None,
-        'avg_illuminant': args.avg_illuminant,
+        'illuminant_range': args.illuminant_range,
         'train_params': args.train_params
     }
     if args.dataset in dataloader.NATURAL_DATASETS:

@@ -23,6 +23,13 @@ def train_arg_parser(argvs, extra_args_fun=None):
         type=str,
         help='Path to a predefined set of parameters (default: None)'
     )
+    misc_group.add_argument(
+        '--illuminant_range',
+        default=None,
+        nargs='+',
+        type=float,
+        help='Images are multiplied to a value in this range (default: None)'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)
