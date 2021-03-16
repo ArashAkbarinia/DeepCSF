@@ -18,7 +18,7 @@ class ContrastDiscrimination(nn.Module):
         checkpoint = None
         # assuming architecture is path
         if transfer_weights is None:
-            print('Transferring the model %s!' % transfer_weights)
+            print('Loading model from %s!' % architecture)
             checkpoint = torch.load(architecture, map_location='cpu')
             architecture = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']

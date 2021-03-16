@@ -200,7 +200,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     is_train = optimizer is not None
 
-    if is_train == 'train':
+    if is_train:
         model.train()
         num_samples = args.train_samples
     else:
