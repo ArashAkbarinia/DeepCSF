@@ -38,6 +38,32 @@ def train_arg_parser(argvs, extra_args_fun=None):
     return args
 
 
+def test_arg_parser(argvs, extra_args_fun=None):
+    parser = _common_arg_parser(description='Contrast discrimination testing')
+
+    _add_optimisation_group(parser)
+
+    misc_group = parser.add_argument_group('csf')
+    misc_group.add_argument(
+        '--freqs',
+        default=None,
+        type=float,
+        help='The frequencies to be tested (default: None)'
+    )
+    misc_group.add_argument(
+        '--contrast_space',
+        default=None,
+        type=str,
+        help='The channel where contrast is manipulated (default: None)'
+    )
+
+    if extra_args_fun is not None:
+        extra_args_fun(parser)
+
+    args = parser.parse_args(argvs)
+    return args
+
+
 def _common_arg_parser(description='No description!'):
     parser = ArgumentParser(description=description)
 
@@ -76,6 +102,12 @@ def _add_logging_group(parser):
         action='store_true',
         default=False,
         help='Saving all check points (default: False)'
+    )
+    logging_group.add_argument(
+        '--visualise',
+        action='store_true',
+        default=False,
+        help='Visualising the input images to network (default: False)'
     )
 
 
@@ -169,7 +201,7 @@ def _add_input_group(parser):
         default='rgb',
         type=str,
         choices=[
-            'rgb', 'imagenet_rgb'
+            'rgb', 'imagenet_rgb',
             'lab',
             'grey', 'grey3'
         ],

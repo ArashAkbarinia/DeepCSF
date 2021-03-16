@@ -30,7 +30,6 @@ class ContrastDiscrimination(nn.Module):
             architecture = architecture.replace('_scratch', '')
         model = pretrained_models.get_backbone(architecture, model)
 
-        # print(model)
         layer = -1
         if len(transfer_weights) >= 2:
             layer = transfer_weights[1]
@@ -46,11 +45,9 @@ class ContrastDiscrimination(nn.Module):
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
-        # the numebrs for fc layers are hard-coded according to 256 size.
+        # the numbers for fc layers are hard-coded according to 256 size.
         scale_factor = (target_size / 256)
-        self.fc = nn.Linear(
-            int(org_classes * scale_factor), num_classes
-        )
+        self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])

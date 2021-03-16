@@ -1,5 +1,5 @@
 """
-PyTorch classification training script for various datasets.
+PyTorch contrast-discrimination training script for various datasets.
 """
 
 import os
