@@ -47,6 +47,7 @@ def test_arg_parser(argvs, extra_args_fun=None):
     misc_group.add_argument(
         '--freqs',
         default=None,
+        nargs='+',
         type=float,
         help='The frequencies to be tested (default: None)'
     )

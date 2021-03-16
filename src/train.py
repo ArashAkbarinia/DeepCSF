@@ -1,5 +1,5 @@
 import sys
-from deepcsf import main
+from deepcsf import train_main
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    train_main(sys.argv[1:])

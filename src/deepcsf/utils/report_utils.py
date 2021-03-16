@@ -50,3 +50,16 @@ def accuracy_preds(output, target, topk=(1,)):
 def accuracy(output, target, topk=(1,)):
     res, _ = accuracy_preds(output, target, topk=topk)
     return res
+
+
+def inv_normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
+    if type(mean) not in [tuple, list]:
+        mean = tuple([mean for _ in range(tensor.shape[1])])
+    if type(std) not in [tuple, list]:
+        std = tuple([std for _ in range(tensor.shape[1])])
+    # inverting the normalisation for each channel
+    for i in range(tensor.shape[1]):
+        tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
+    tensor = tensor.clamp(0, 1)
+    return tensor
