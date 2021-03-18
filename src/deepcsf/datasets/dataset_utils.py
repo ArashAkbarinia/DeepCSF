@@ -12,6 +12,7 @@ from torchvision import datasets as tdatasets
 from torch.utils import data as torch_data
 
 from ..utils import colour_spaces, system_utils
+from . import imutils
 
 
 def _two_pairs_stimuli(img0, img1, con0, con1, p=0.5, contrast_target=None):
@@ -38,23 +39,6 @@ def _prepare_vision_types(img, colour_space, vision_type):
             sys.exit('Vision type %s not supported' % vision_type)
         img = colour_spaces.dkl2rgb(opp_img)
     return img
-
-
-def _adjust_contrast(image, amount):
-    amount = np.array(amount)
-
-    assert np.all(amount >= 0.0), 'contrast_level too low.'
-    assert np.all(amount <= 1.0), 'contrast_level too high.'
-
-    is_uint8 = image.dtype == 'uint8'
-    if is_uint8:
-        image = np.float32(image) / 255
-    image_contrast = (1 - amount) / 2.0 + np.multiply(image, amount)
-    if is_uint8:
-        image_contrast *= 255
-        image_contrast = np.uint8(image_contrast)
-
-    return image_contrast
 
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
@@ -109,8 +93,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
 
     # manipulating the contrast
-    img0 = _adjust_contrast(img0, contrast0)
-    img1 = _adjust_contrast(img1, contrast1)
+    img0 = imutils.adjust_contrast(img0, contrast0)
+    img1 = imutils.adjust_contrast(img1, contrast1)
 
     # multiplying by the illuminant
     if illuminant_range is None:
