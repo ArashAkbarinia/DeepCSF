@@ -5,6 +5,7 @@ PyTorch contrast-discrimination training script for various datasets.
 import os
 import numpy as np
 import time
+import sys
 
 import torch
 import torch.nn as nn
@@ -105,6 +106,9 @@ def _main_worker(args):
     else:
         shuffle = True
 
+    if args.sf_filter is not None and len(args.sf_filter) != 2:
+        sys.exit('Length of the sf_filter must be two %s' % args.sf_filter)
+
     # loading the training set
     train_trans = [*both_trans, *train_trans]
     db_params = {
@@ -113,7 +117,8 @@ def _main_worker(args):
         'mask_image': 'gaussian',
         'contrasts': None,
         'illuminant_range': args.illuminant_range,
-        'train_params': args.train_params
+        'train_params': args.train_params,
+        'sf_filter': args.sf_filter
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir

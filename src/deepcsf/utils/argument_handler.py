@@ -30,6 +30,13 @@ def train_arg_parser(argvs, extra_args_fun=None):
         type=float,
         help='Images are multiplied to a value in this range (default: None)'
     )
+    misc_group.add_argument(
+        '--sf_filter',
+        default=None,
+        nargs='+',
+        type=float,
+        help='Filtering images with <high,low> spatial freq (default: None)'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)

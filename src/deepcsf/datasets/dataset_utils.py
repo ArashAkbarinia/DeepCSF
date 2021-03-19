@@ -43,13 +43,12 @@ def _prepare_vision_types(img, colour_space, vision_type):
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     illuminant_range=1.0, current_param=None):
+                     illuminant_range=1.0, current_param=None, sf_filter=None):
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
-    img1 = img0.copy()
-
     # converting to range 0 to 1
     img0 = np.float32(img0) / 255
-    img1 = np.float32(img1) / 255
+    # copying to img1
+    img1 = img0.copy()
 
     contrast_target = None
     # if current_param is passed no randomness is generated on the fly
@@ -91,6 +90,12 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         elif colour_space == 'grey3':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
+
+    # applying SF filter
+    if sf_filter is not None:
+        hsf_cut, lsf_cut = sf_filter
+        img0 = imutils.filter_img_sf(img0, hsf_cut=hsf_cut, lsf_cut=lsf_cut)
+        img1 = imutils.filter_img_sf(img1, hsf_cut=hsf_cut, lsf_cut=lsf_cut)
 
     # manipulating the contrast
     img0 = imutils.adjust_contrast(img0, contrast0)
@@ -158,7 +163,7 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
                  vision_type='trichromat', mask_image=None,
-                 illuminant_range=1.0, train_params=None):
+                 illuminant_range=1.0, train_params=None, sf_filter=None):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
@@ -173,6 +178,7 @@ class AfcDataset(object):
         else:
             self.train_params = system_utils.read_pickle(train_params)
         self.img_counter = 0
+        self.sf_filter = sf_filter
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -191,7 +197,8 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.illuminant_range
+            self.same_transforms, self.p, self.illuminant_range,
+            sf_filter=self.sf_filter
         )
 
         return img_out, contrast_target, path
@@ -221,7 +228,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
             self.same_transforms, self.p, self.illuminant_range,
-            current_param=current_param
+            current_param=current_param, sf_filter=self.sf_filter
         )
 
         return img_out[0], img_out[1], contrast_target, path
