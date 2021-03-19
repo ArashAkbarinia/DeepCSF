@@ -25,27 +25,29 @@ def adjust_contrast(image, amount):
 
 
 def filter_img_sf(img, **kwargs):
-    if len(img.shape) > 2:
-        img_back = np.zeros(img.shape)
-        for i in range(img.shape[2]):
-            img_back[:, :, i] = filter_chn_sf(img[:, :, i], **kwargs)
+    img_norm = (img.copy() - 0.5) / 0.5
+    if len(img_norm.shape) > 2:
+        img_back = np.zeros(img_norm.shape)
+        for i in range(img_norm.shape[2]):
+            img_back[:, :, i] = _filter_chn_sf(img_norm[:, :, i], **kwargs)
     else:
-        img_back = filter_chn_sf(img, **kwargs)
+        img_back = _filter_chn_sf(img_norm, **kwargs)
+    img_back = (img_back * 0.5) + 0.5
     return img_back
 
 
-def filter_chn_sf(img, **kwargs):
+def _filter_chn_sf(img, **kwargs):
     img_freq = np.fft.fft2(img)
     img_freq_cent = np.fft.fftshift(img_freq)
-    img_sf_filtered = cutoff_chn_fourier(img_freq_cent, **kwargs)
+    img_sf_filtered = _cutoff_chn_fourier(img_freq_cent, **kwargs)
 
     img_back = np.real(np.fft.ifft2(np.fft.ifftshift(img_sf_filtered)))
-    img_back[img_back < 0] = 0
+    img_back[img_back < -1] = -1
     img_back[img_back > 1] = 1
     return img_back
 
 
-def cutoff_chn_fourier(img, hsf_cut, lsf_cut):
+def _cutoff_chn_fourier(img, hsf_cut, lsf_cut):
     rows = img.shape[0]
     cols = img.shape[1]
     smaller_side = np.minimum(rows, cols)
