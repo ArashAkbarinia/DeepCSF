@@ -6,8 +6,6 @@ import numpy as np
 import math
 import cv2
 
-from . import colour_spaces
-
 
 def adjust_contrast(image, amount):
     amount = np.array(amount)
@@ -28,27 +26,26 @@ def adjust_contrast(image, amount):
 
 def filter_img_sf(img, **kwargs):
     if len(img.shape) > 2:
-        # assuming RGB
-        dkl = colour_spaces.rgb012dkl01(img)
-        img_freq = np.fft.fft2(dkl[:, :, 0])
+        img_back = np.zeros(img.shape)
+        for i in range(img.shape[2]):
+            img_back[:, :, i] = filter_chn_sf(img[:, :, i], **kwargs)
     else:
-        img_freq = np.fft.fft2(img)
+        img_back = filter_chn_sf(img, **kwargs)
+    return img_back
 
+
+def filter_chn_sf(img, **kwargs):
+    img_freq = np.fft.fft2(img)
     img_freq_cent = np.fft.fftshift(img_freq)
-    img_sf_filtered = filter_chn_sf(img_freq_cent, **kwargs)
+    img_sf_filtered = cutoff_chn_fourier(img_freq_cent, **kwargs)
 
-    img_back = np.abs(np.fft.ifft2(np.fft.ifftshift(img_sf_filtered)))
+    img_back = np.real(np.fft.ifft2(np.fft.ifftshift(img_sf_filtered)))
     img_back[img_back < 0] = 0
     img_back[img_back > 1] = 1
-
-    if len(img.shape) > 2:
-        dkl[:, :, 0] = img_back
-        return colour_spaces.dkl012rgb01(dkl)
-    else:
-        return img_back
+    return img_back
 
 
-def filter_chn_sf(img, hsf_cut, lsf_cut):
+def cutoff_chn_fourier(img, hsf_cut, lsf_cut):
     rows = img.shape[0]
     cols = img.shape[1]
     smaller_side = np.minimum(rows, cols)
