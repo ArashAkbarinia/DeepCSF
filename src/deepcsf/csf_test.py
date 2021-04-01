@@ -3,14 +3,13 @@ Evaluating a network with contrast-discrimination to generate its CSF.
 """
 
 import numpy as np
-import sys
 
 import torch
 
 from skimage import io
 
 from .datasets import dataloader
-from .models import model_csf, model_utils
+from .models import model_csf, model_utils, lesion_utils
 from .utils import report_utils, system_utils, argument_handler
 
 
@@ -116,6 +115,9 @@ def main(argv):
 
     # creating the model, args.architecture should be a path
     model = model_csf.ContrastDiscrimination(args.architecture, target_size)
+    model = lesion_utils.lesion_kernels(
+        model, args.lesion_kernels, args.lesion_planes, args.lesion_lines
+    )
     model.eval()
     model.cuda()
 

@@ -49,6 +49,7 @@ def test_arg_parser(argvs, extra_args_fun=None):
     parser = _common_arg_parser(description='Contrast discrimination testing')
 
     _add_optimisation_group(parser)
+    _add_lesion_group()
 
     misc_group = parser.add_argument_group('csf')
     misc_group.add_argument(
@@ -272,6 +273,32 @@ def _add_dataset_group(parser):
         type=int,
         default=None,
         help='Number of validation samples (default: All)'
+    )
+
+
+def _add_lesion_group(parser):
+    network_manipulation_group = parser.add_argument_group('lesion')
+
+    network_manipulation_group.add_argument(
+        '--lesion_kernels',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--lesion_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--lesion_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
     )
 
 
