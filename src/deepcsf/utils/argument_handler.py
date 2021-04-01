@@ -49,7 +49,7 @@ def test_arg_parser(argvs, extra_args_fun=None):
     parser = _common_arg_parser(description='Contrast discrimination testing')
 
     _add_optimisation_group(parser)
-    _add_lesion_group()
+    _add_lesion_group(parser)
 
     misc_group = parser.add_argument_group('csf')
     misc_group.add_argument(
