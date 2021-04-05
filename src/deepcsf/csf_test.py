@@ -3,6 +3,7 @@ Evaluating a network with contrast-discrimination to generate its CSF.
 """
 
 import numpy as np
+import os
 
 import torch
 
@@ -81,6 +82,12 @@ def main(argv):
     colour_space = args.colour_space
     target_size = args.target_size
 
+    args.output_dir = '%s/tests/t%.3d/' % (args.output_dir, args.target_size)
+    system_utils.create_dir(args.output_dir)
+    out_file = '%s/%s' % (args.output_dir, args.experiment_name)
+    if os.path.exists(out_file + '.csv'):
+        return
+
     preprocess = model_utils.get_mean_std(args.colour_space, args.vision_type)
     visualise_preprocess = preprocess if args.visualise else None
 
@@ -127,9 +134,6 @@ def main(argv):
     all_results = None
     csf_flags = [mid_contrast for _ in test_sfs]
 
-    args.output_dir = '%s/tests/t%.3d/' % (args.output_dir, args.target_size)
-    system_utils.create_dir(args.output_dir)
-    out_file = '%s/%s' % (args.output_dir, args.experiment_name)
     for i in range(len(csf_flags)):
         low = 0
         high = max_high
