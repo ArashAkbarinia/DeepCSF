@@ -18,14 +18,16 @@ def _area_name_from_path(file_name):
     return None
 
 
-def _load_network_results(path, chns=None):
+def _load_network_results(path, chns=None, area_suf=None):
+    if area_suf is None:
+        area_suf = ''
     net_results = dict()
     for chns_dir in sorted(glob.glob(path + '/*/')):
         chn_name = chns_dir.split('/')[-2]
         if chns is not None and chn_name not in chns:
             continue
         chn_res = []
-        for file_path in sorted(glob.glob(chns_dir + '*.csv')):
+        for file_path in sorted(glob.glob('%s/*%s*.csv' % (chns_dir, area_suf))):
             file_name = file_path.split('/')[-1]
             # finding the appropriate name
             area_name = _area_name_from_path(file_name)
@@ -34,6 +36,17 @@ def _load_network_results(path, chns=None):
         if len(chn_res) > 0:
             net_results[chn_name] = chn_res
     return net_results
+
+
+def _load_lesion_results(path, chns=None, area_suf=None):
+    if area_suf is None:
+        area_suf = ''
+    lesion_results = []
+    for kernel_dir in sorted(glob.glob(path + '/*/')):
+        lesion_results.append(
+            _load_network_results(kernel_dir, chns=chns, area_suf=area_suf)
+        )
+    return lesion_results
 
 
 def _extract_sensitivity(result_mat):
@@ -99,6 +112,13 @@ def _extract_network_summary(net_results, target_size):
     return net_summary
 
 
+def _extract_lesion_summary(lesion_results, target_size):
+    lesion_summary = []
+    for res in lesion_results:
+        lesion_summary.append(_extract_network_summary(res, target_size))
+    return lesion_summary
+
+
 def _chn_plot_params(chn_name):
     label = chn_name
     kwargs = {}
@@ -123,7 +143,8 @@ def _chn_plot_params(chn_name):
 
 
 def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
-                  normalise=True, model_name=None, old_fig=None):
+                  normalise=True, model_info=None, old_fig=None,
+                  chn_info=None):
     if old_fig is None:
         fig = plt.figure(figsize=figsize)
     else:
@@ -141,17 +162,22 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
             ax = fig.add_subplot(1, num_tests, i + 1)
         ax.set_title(chn_summary[i][1])
 
-        label, chn_params = _chn_plot_params(chn_name)
+        if chn_info is None:
+            label, chn_params = _chn_plot_params(chn_name)
+        else:
+            label, chn_params = chn_info
 
         if normalise:
             org_yvals /= org_yvals.max()
 
         # first plot the human CSF
-        if model_name is not None:
-            hcsf = np.array([animal_csfs.csf(f, model_name) for f in org_freqs])
-            hcsf /= hcsf.max()
-            hcsf *= np.max(org_yvals)
-            ax.plot(org_freqs, hcsf, '--', color='black', label='human')
+        if model_info is not None:
+            model_name, plot_model = model_info
+            if plot_model:
+                hcsf = np.array([animal_csfs.csf(f, model_name) for f in org_freqs])
+                hcsf /= hcsf.max()
+                hcsf *= np.max(org_yvals)
+                ax.plot(org_freqs, hcsf, '--', color='black', label='human')
 
             # use interpolation for corelation
             int_freqs = np.array(chn_summary[i][0]['unique_params']['sf_int'])
@@ -176,6 +202,114 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
     return fig
 
 
+def _plot_lesion_csf(chn_summary, chn_name, lesion_summary,
+                     figsize=None, log_axis=False, normalise=True,
+                     model_info=None, old_fig=None, chn_info=None):
+    num_kernels = len(lesion_summary)
+    if figsize is None:
+        if num_kernels == 64:
+            figsize = (22, 22)
+            rows = 8
+            cols = 8
+        elif num_kernels == 128:
+            figsize = (22, 44)
+            rows = 16
+            cols = 8
+    if old_fig is None:
+        fig = plt.figure(figsize=figsize)
+    else:
+        fig = old_fig
+
+    # the original network without lesion
+    f_org_yvals = np.array(chn_summary[0][0]['sensitivities']['all'])
+    f_org_freqs = np.array(chn_summary[0][0]['unique_params']['sf'])
+    if normalise:
+        f_org_yvals /= f_org_yvals.max()
+    # computing the human CSF
+    if model_info is not None:
+        model_name, plot_model = model_info
+        if plot_model:
+            f_hcsf = np.array([animal_csfs.csf(f, model_name) for f in f_org_freqs])
+            f_hcsf /= f_hcsf.max()
+            f_hcsf *= np.max(f_org_yvals)
+
+        # use interpolation for corelation
+        int_freqs = np.array(chn_summary[0][0]['unique_params']['sf_int'])
+        hcsf = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
+        hcsf /= hcsf.max()
+
+        int_yvals = np.array(chn_summary[0][0]['sensitivities']['all_int'])
+        int_yvals /= int_yvals.max()
+        p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
+        euc_dis = np.linalg.norm(hcsf - int_yvals)
+        f_suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+        f_suffix_label = ' [r=%.2f]' % (p_corr)
+    else:
+        f_suffix_label = ''
+
+    for k in range(num_kernels):
+        # getting the x and y values
+        org_yvals = np.array(lesion_summary[k][chn_name][0][0]['sensitivities']['all'])
+        org_freqs = np.array(lesion_summary[k][chn_name][0][0]['unique_params']['sf'])
+
+        if old_fig:
+            ax = fig.axes[k]
+        else:
+            ax = fig.add_subplot(rows, cols, k + 1)
+        ax.set_title('k%.4d' % k)
+
+        if normalise:
+            org_yvals /= org_yvals.max()
+
+        # first plot the human CSF
+        if model_info is not None:
+            model_name, plot_model = model_info
+            if plot_model:
+                ax.plot(org_freqs, f_hcsf, '--', color='black', label='human')
+
+            int_yvals = np.array(lesion_summary[k][chn_name][0][0]['sensitivities']['all_int'])
+            int_yvals /= int_yvals.max()
+            p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
+            euc_dis = np.linalg.norm(hcsf - int_yvals)
+            suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+            suffix_label = ' [r=%.2f]' % (p_corr)
+        else:
+            suffix_label = ''
+        chn_label = '%s%s' % ('full', f_suffix_label)
+        _, chn_params = _chn_plot_params(chn_name)
+        ax.plot(f_org_freqs, f_org_yvals, label=chn_label, **chn_params)
+        chn_label = '%.3d%s' % (k, suffix_label)
+        _, chn_params = chn_info
+        ax.scatter(org_freqs, org_yvals, label=chn_label, **chn_params)
+
+        ax.set_xlabel('Spatial Frequency (Cycle/Image)')
+        ax.set_ylabel('Sensitivity (1/Contrast)')
+        if log_axis:
+            ax.set_xscale('log')
+            loc = 'lower center'
+        else:
+            loc = 'upper right'
+        ax.legend(loc=loc)
+    return fig
+
+
+def plot_csf_lesion(lesion_path, org_path, area_suf,
+                    target_size, chns=None, **kwargs):
+    lesion_res = _load_lesion_results(lesion_path, chns=chns, area_suf=area_suf)
+    lesion_summary = _extract_lesion_summary(lesion_res, target_size)
+
+    net_results = _load_network_results(org_path, chns=chns, area_suf=area_suf)
+    net_summary = _extract_network_summary(net_results, target_size)
+
+    net_csf_fig = None
+    for chn_key, chn_val in net_summary.items():
+        if net_csf_fig is not None:
+            kwargs['old_fig'] = net_csf_fig
+            kwargs['model_info'] = None
+        net_csf_fig = _plot_lesion_csf(chn_val, chn_key, lesion_summary, **kwargs)
+    return net_csf_fig
+
+
 def plot_csf_areas(path, target_size, chns=None, **kwargs):
     net_results = _load_network_results(path, chns=chns)
     net_summary = _extract_network_summary(net_results, target_size)
@@ -183,6 +317,6 @@ def plot_csf_areas(path, target_size, chns=None, **kwargs):
     for chn_key, chn_val in net_summary.items():
         if net_csf_fig is not None:
             kwargs['old_fig'] = net_csf_fig
-            kwargs['model_name'] = None
+            kwargs['model_info'] = None
         net_csf_fig = _plot_chn_csf(chn_val, chn_key, **kwargs)
     return net_csf_fig
