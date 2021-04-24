@@ -33,6 +33,12 @@ def main(argv):
     )
     system_utils.create_dir(args.output_dir)
 
+    # this is just a hack for when the training script has crashed
+    filename = 'e%.3d_%s' % (8, 'checkpoint.pth.tar')
+    file_path = os.path.join(args.output_dir, filename)
+    if os.path.exists(file_path):
+        return
+
     # dumping all passed arguments to a json file
     system_utils.save_arguments(args)
 
