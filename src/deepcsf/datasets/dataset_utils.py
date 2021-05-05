@@ -13,6 +13,7 @@ from torch.utils import data as torch_data
 
 from ..utils import colour_spaces, system_utils
 from . import imutils
+from . import stimuli_bank
 
 
 def _two_pairs_stimuli(img0, img1, con0, con1, p=0.5, contrast_target=None):
@@ -315,9 +316,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             'amp': contrast0, 'omega': omega, 'rho': rho,
             'img_size': self.target_size, 'lambda_wave': lambda_wave
         }
-        img0 = _sinusoid(**sinusoid_param)
+        img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
         sinusoid_param['amp'] = contrast1
-        img1 = _sinusoid(**sinusoid_param)
+        img1 = stimuli_bank.sinusoid_grating(**sinusoid_param)
 
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
@@ -420,16 +421,3 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
     def __len__(self):
         return self.samples
-
-
-def _sinusoid(img_size, amp, omega, rho, lambda_wave):
-    # Generate Sinusoid grating
-    # sz: size of generated image (width, height)
-    radius = (int(img_size[0] / 2.0), int(img_size[1] / 2.0))
-    [x, y] = np.meshgrid(
-        range(-radius[0], radius[0] + 1),
-        range(-radius[1], radius[1] + 1)
-    )
-
-    stimuli = amp * np.cos((omega[0] * x + omega[1] * y) / lambda_wave + rho)
-    return stimuli
