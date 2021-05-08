@@ -81,7 +81,7 @@ def _resnet_features(model, network_name, layer):
         elif layer == 'area1':
             layer = 5
             if network_name in [
-                'resnet18', 'resnet34',
+                'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 524288
@@ -90,7 +90,7 @@ def _resnet_features(model, network_name, layer):
         elif layer == 'area2':
             layer = 6
             if network_name in [
-                'resnet18', 'resnet34',
+                'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 262144
@@ -99,7 +99,7 @@ def _resnet_features(model, network_name, layer):
         elif layer == 'area3':
             layer = 7
             if network_name in [
-                'resnet18', 'resnet34',
+                'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 131072
@@ -112,7 +112,7 @@ def _resnet_features(model, network_name, layer):
         elif layer == 'area4':
             layer = 8
             if network_name in [
-                'resnet18', 'resnet34',
+                'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 65536
