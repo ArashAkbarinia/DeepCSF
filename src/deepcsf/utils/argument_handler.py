@@ -73,6 +73,41 @@ def test_arg_parser(argvs, extra_args_fun=None):
     return args
 
 
+def activation_arg_parser(argvs, extra_args_fun=None):
+    parser = _common_arg_parser(description='Contrast stimuli activation')
+
+    _add_optimisation_group(parser)
+    _add_lesion_group(parser)
+
+    misc_group = parser.add_argument_group('gratings')
+    misc_group.add_argument(
+        '--stimuli',
+        default=None,
+        type=str,
+        choices=['grating_radius'],
+        help='The type of stimuli (default: None)'
+    )
+    misc_group.add_argument(
+        '--contrasts',
+        default=None,
+        nargs='+',
+        type=float,
+        help='The contrasts to be tested (default: None)'
+    )
+    misc_group.add_argument(
+        '--contrast_space',
+        default=None,
+        type=str,
+        help='The channel where contrast is manipulated (default: None)'
+    )
+
+    if extra_args_fun is not None:
+        extra_args_fun(parser)
+
+    args = parser.parse_args(argvs)
+    return args
+
+
 def _common_arg_parser(description='No description!'):
     parser = ArgumentParser(description=description)
 
