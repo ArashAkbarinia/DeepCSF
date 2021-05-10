@@ -144,7 +144,8 @@ def _chn_plot_params(chn_name):
 
 def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
                   normalise=True, model_info=None, old_fig=None,
-                  chn_info=None):
+                  chn_info=None, legend_dis=False, legend=True, legend_loc='auto',
+                  font_size=16):
     if old_fig is None:
         fig = plt.figure(figsize=figsize)
     else:
@@ -160,7 +161,7 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
             ax = fig.axes[i]
         else:
             ax = fig.add_subplot(1, num_tests, i + 1)
-        ax.set_title(chn_summary[i][1])
+        ax.set_title(chn_summary[i][1], **{'size': font_size})
 
         if chn_info is None:
             label, chn_params = _chn_plot_params(chn_name)
@@ -187,18 +188,24 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
             int_yvals = np.array(chn_summary[i][0]['sensitivities']['all_int'])
             int_yvals /= int_yvals.max()
             p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
-            euc_dis = np.linalg.norm(hcsf - int_yvals)
-            suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+            if not legend:
+                suffix_label = ''
+            elif legend_dis:
+                euc_dis = np.linalg.norm(hcsf - int_yvals)
+                suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+            else:
+                suffix_label = ' [r=%.2f]' % p_corr
         else:
             suffix_label = ''
         chn_label = '%s%s' % (label, suffix_label)
         ax.plot(org_freqs, org_yvals, label=chn_label, **chn_params)
 
-        ax.set_xlabel('Spatial Frequency (Cycle/Image)')
-        ax.set_ylabel('Sensitivity (1/Contrast)')
+        ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
+        ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
         if log_axis:
             ax.set_xscale('log')
-        ax.legend()
+        if legend:
+            ax.legend(loc=legend_loc)
     return fig
 
 
@@ -207,14 +214,10 @@ def _plot_lesion_csf(chn_summary, chn_name, lesion_summary,
                      model_info=None, old_fig=None, chn_info=None):
     num_kernels = len(lesion_summary)
     if figsize is None:
-        if num_kernels == 64:
-            figsize = (22, 22)
-            rows = 8
-            cols = 8
-        elif num_kernels == 128:
-            figsize = (22, 44)
-            rows = 16
-            cols = 8
+        fig_height = int((num_kernels / 64) * 22)
+        figsize = (22, fig_height)
+        rows = int((num_kernels / 64) * 8)
+        cols = 8
     if old_fig is None:
         fig = plt.figure(figsize=figsize)
     else:
