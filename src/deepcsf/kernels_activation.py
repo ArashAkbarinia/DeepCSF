@@ -28,7 +28,7 @@ def _get_activation(name, acts_dict):
 def _create_resnet_hooks(model):
     act_dict = dict()
     rfhs = dict()
-    rfhs['area0'] = model.conv1.register_forward_hook(
+    rfhs['area0'] = model.maxpool.register_forward_hook(
         _get_activation('area0', act_dict)
     )
     for i in range(1, 5):
@@ -43,7 +43,8 @@ def _create_resnet_hooks(model):
                 attr_name = 'bn%d' % k
                 if hasattr(area_i[j], attr_name):
                     act_name = 'area%d.%d_%d' % (i, j, k)
-                    rfhs[act_name] = getattr(area_i[j], attr_name).register_forward_hook(
+                    area_ijk = getattr(area_i[j], attr_name)
+                    rfhs[act_name] = area_ijk.register_forward_hook(
                         _get_activation(act_name, act_dict)
                     )
     return act_dict, rfhs
@@ -86,6 +87,7 @@ def run_gratings_radius(model, out_file, args):
             acts_rads = []
             for grating_radius in range(1, max_rad, args.print_freq):
                 img = stimuli_bank.circular_gratings(contrast, grating_radius)
+                img = (img + 1) / 2
                 img = _prepapre_colour_space(
                     img, args.colour_space, args.contrast_space
                 )
@@ -127,8 +129,6 @@ def run_gratings_radius(model, out_file, args):
 
 def main(argv):
     args = argument_handler.activation_arg_parser(argv)
-    colour_space = args.colour_space
-    target_size = args.target_size
 
     args.output_dir = '%s/activations/t%.3d/' % (args.output_dir, args.target_size)
     system_utils.create_dir(args.output_dir)
