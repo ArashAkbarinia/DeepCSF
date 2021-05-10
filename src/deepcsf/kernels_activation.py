@@ -28,9 +28,12 @@ def _get_activation(name, acts_dict):
 def _create_resnet_hooks(model):
     act_dict = dict()
     rfhs = dict()
-    rfhs['area0'] = model.maxpool.register_forward_hook(
-        _get_activation('area0', act_dict)
-    )
+    for attr_name in ['maxpool', 'contrast_pool']:
+        if hasattr(model, attr_name):
+            area0 = getattr(model, attr_name)
+            rfhs['area0'] = area0.register_forward_hook(
+                _get_activation('area0', act_dict)
+            )
     for i in range(1, 5):
         attr_name = 'layer%d' % i
         act_name = 'area%d' % i

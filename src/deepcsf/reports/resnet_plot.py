@@ -1,6 +1,7 @@
 """
 Plotting the output of CSF tests.
 """
+import sys
 
 import numpy as np
 import glob
@@ -293,6 +294,42 @@ def _plot_lesion_csf(chn_summary, chn_name, lesion_summary,
         else:
             loc = 'upper right'
         ax.legend(loc=loc)
+    return fig
+
+
+def plot_area_activation(activations, area_name, which_measure='avg'):
+    if which_measure == 'avg':
+        m_ind = 0
+    elif which_measure == 'med':
+        m_ind = 1
+    elif which_measure == 'max':
+        m_ind = 2
+    else:
+        sys.exit('Measure %s is not supported!' % which_measure)
+
+    contrasts = activations.keys()
+    num_rads = len(activations['con100'])
+    num_kernels = activations['con100'][0][area_name][m_ind].shape[0]
+
+    fig_height = int((num_kernels / 64) * 22)
+    figsize = (28, fig_height)
+    fig = plt.figure(figsize=figsize)
+    rows = int((num_kernels / 64) * 8)
+    cols = 8
+
+    for i in range(num_kernels):
+        ax = fig.add_subplot(rows, cols, i + 1)
+
+        xaxis = np.arange(1, num_rads + 1)
+        for contrast in contrasts:
+            yaxis = []
+            for rad_ind in range(num_rads):
+                yaxis.append(activations[contrast][rad_ind][area_name][m_ind][i])
+            con_f = 1 - (float(contrast[3:]) / 100)
+            color = [con_f, con_f, con_f]
+            ax.plot(xaxis, yaxis, color=color)
+            ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+            ax.set_xticks([])
     return fig
 
 
