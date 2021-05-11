@@ -4,7 +4,6 @@ Evaluating a network with contrast-discrimination to generate its CSF.
 
 import numpy as np
 import os
-import pickle
 import sys
 
 import torch
@@ -51,12 +50,6 @@ def _create_resnet_hooks(model):
                         _get_activation(act_name, act_dict)
                     )
     return act_dict, rfhs
-
-
-def _write_pickle(out_file, data):
-    pickle_out = open(out_file, 'wb')
-    pickle.dump(data, pickle_out)
-    pickle_out.close()
 
 
 def _prepapre_colour_space(img, colour_space, contrast_space):
@@ -126,7 +119,7 @@ def run_gratings_radius(model, out_file, args):
             all_activations['con%.3d' % (contrast * 100)] = acts_rads
 
     save_path = out_file + '.pickle'
-    _write_pickle(save_path, all_activations)
+    system_utils.write_pickle(save_path, all_activations)
     return all_activations
 
 
