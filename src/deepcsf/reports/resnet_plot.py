@@ -145,7 +145,7 @@ def _chn_plot_params(chn_name):
 
 def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
                   normalise=True, model_info=None, old_fig=None,
-                  chn_info=None, legend_dis=False, legend=True, legend_loc='auto',
+                  chn_info=None, legend_dis=False, legend=True, legend_loc='best',
                   font_size=16):
     if old_fig is None:
         fig = plt.figure(figsize=figsize)
@@ -297,7 +297,7 @@ def _plot_lesion_csf(chn_summary, chn_name, lesion_summary,
     return fig
 
 
-def plot_area_activation(activations, area_name, which_measure='avg'):
+def plot_area_activation(activations, area_name, which_measure='avg', normalised=False):
     if which_measure == 'avg':
         m_ind = 0
     elif which_measure == 'med':
@@ -327,6 +327,11 @@ def plot_area_activation(activations, area_name, which_measure='avg'):
                 yaxis.append(activations[contrast][rad_ind][area_name][m_ind][i])
             con_f = 1 - (float(contrast[3:]) / 100)
             color = [con_f, con_f, con_f]
+            if normalised:
+                yaxis = np.array(yaxis)
+                max_val = abs(yaxis).max()
+                if max_val > 0:
+                    yaxis /= max_val
             ax.plot(xaxis, yaxis, color=color)
             ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
             ax.set_xticks([])
