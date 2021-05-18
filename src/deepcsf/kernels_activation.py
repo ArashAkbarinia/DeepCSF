@@ -61,6 +61,12 @@ def _prepapre_colour_space(img, colour_space, contrast_space):
         elif contrast_space == 'rg':
             img[:, :, [0, 2]] = 0.5
             img = colour_spaces.dkl012rgb01(img)
+        elif contrast_space == 'red':
+            img[:, :, [1, 2]] = 0.5
+        elif contrast_space == 'green':
+            img[:, :, [0, 2]] = 0.5
+        elif contrast_space == 'blue':
+            img[:, :, [0, 1]] = 0.5
         elif contrast_space != 'rgb':
             sys.exit('Contrast %s not supported' % contrast_space)
     return img
