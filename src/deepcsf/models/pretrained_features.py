@@ -140,4 +140,6 @@ def get_pretrained_model(network_name):
 
 
 def get_backbones(network_name, model):
+    if 'deeplab' in network_name or 'fcn_' in network_name:
+        return model.backbone
     return model
