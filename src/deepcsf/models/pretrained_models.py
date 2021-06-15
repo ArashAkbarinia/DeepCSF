@@ -136,21 +136,22 @@ def get_pretrained_model(network_name, transfer_weights):
     elif os.path.isfile(transfer_weights[0]):
         # FIXME: cheap hack!
         if 'vqvae' in network_name or 'vqvae' in transfer_weights[0]:
+            vqvae_info = torch.load(transfer_weights[0], map_location='cpu')
+
             backbone = {
-                'arch_name': 'deeplabv3_resnet50',
-                'layer_name': 'area4'
+                'arch_name': vqvae_info['backbone']['arch'],
+                'layer_name': vqvae_info['backbone']['area'],
             }
             # hardcoded to test one type
-            hidden = 128
-            k = 8
-            kl = 8
+            hidden = vqvae_info['backbone']['hidden']
+            k = vqvae_info['backbone']['k']
+            kl = vqvae_info['backbone']['kl']
             model = vqvae.Backbone_VQ_VAE(
                 hidden, k=k, kl=kl, num_channels=3, colour_space='rgb2rgb',
                 task=None, out_chns=3, cos_distance=False,
                 use_decor_loss=False, backbone=backbone
             )
-            weights = torch.load(transfer_weights[0], map_location='cpu')
-            model.load_state_dict(weights)
+            model.load_state_dict(vqvae_info['state_dict'])
             print('Loaded the VQVAE model!')
         else:
             model = model_utils.which_network(
