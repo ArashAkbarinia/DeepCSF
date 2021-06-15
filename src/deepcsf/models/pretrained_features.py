@@ -7,6 +7,7 @@ import sys
 import torch.nn as nn
 
 from torchvision import models as classification
+from torchvision.models import segmentation
 from torchvision.models import resnet as presnet
 
 from . import model_utils
@@ -41,7 +42,7 @@ class ResNetIntermediate(nn.Module):
         self.last_layer = None
 
         entire_area = ['area%d' % e for e in range(0, 5)]
-        if 'deeplabv3_' in arch_name or 'fcn_' in arch_name:
+        if 'deeplab' in arch_name or 'fcn_' in arch_name:
             spatial_ratios = [4, 4, 8, 8, 8]
         else:
             spatial_ratios = [4, 4, 8, 16, 32]
@@ -131,7 +132,10 @@ class ResNetIntermediate(nn.Module):
 
 
 def get_pretrained_model(network_name):
-    model = classification.__dict__[network_name](pretrained=False)
+    if 'deeplab' in network_name or 'fcn_' in network_name:
+        model = segmentation.__dict__[network_name](pretrained=False)
+    else:
+        model = classification.__dict__[network_name](pretrained=False)
     return model
 
 
