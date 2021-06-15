@@ -135,7 +135,7 @@ def get_pretrained_model(network_name, transfer_weights):
             vqvae_info = torch.load(transfer_weights[0], map_location='cpu')
 
             backbone = {
-                'arch_name': vqvae_info['backbone']['arch'],
+                'arch_name': vqvae_info['backbone']['arach'],
                 'layer_name': vqvae_info['backbone']['area'],
             }
             # hardcoded to test one type
