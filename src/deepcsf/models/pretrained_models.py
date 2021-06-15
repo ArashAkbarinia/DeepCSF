@@ -129,11 +129,7 @@ def _resnet_features(model, network_name, layer):
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if '_scratch' in network_name:
-        model = model_utils.which_architecture(
-            network_name.replace('_scratch', '')
-        )
-    elif os.path.isfile(transfer_weights[0]):
+    if os.path.isfile(transfer_weights[0]):
         # FIXME: cheap hack!
         if 'vqvae' in network_name or 'vqvae' in transfer_weights[0]:
             vqvae_info = torch.load(transfer_weights[0], map_location='cpu')
@@ -158,6 +154,10 @@ def get_pretrained_model(network_name, transfer_weights):
                 transfer_weights[0], transfer_weights[2],
                 num_classes=1000 if 'class' in transfer_weights[2] else 21
             )
+    elif '_scratch' in network_name:
+        model = model_utils.which_architecture(
+            network_name.replace('_scratch', '')
+        )
     elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
           'deeplab' in network_name
     ):
