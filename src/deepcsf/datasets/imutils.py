@@ -48,27 +48,13 @@ def _filter_chn_sf(img, **kwargs):
 
 
 def _cutoff_chn_fourier(img, hsf_cut, lsf_cut):
-    rows = img.shape[0]
-    cols = img.shape[1]
-    smaller_side = np.minimum(rows, cols)
-    centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
-
-    if hsf_cut == 0:
-        mask_hsf = np.ones(img.shape, np.uint8)
-    else:
-        hsf_cut = 1 - hsf_cut
-        hsf_length = int(math.floor(hsf_cut * smaller_side * 0.5))
-        mask_hsf = np.zeros(img.shape, np.uint8)
-        mask_hsf = cv2.circle(mask_hsf, centre, hsf_length, (1, 1, 1), -1)
-
-    if lsf_cut == 0:
-        mask_lsf = np.ones(img.shape, np.uint8)
-    else:
-        lsf_length = int(math.floor(lsf_cut * smaller_side * 0.5))
-        mask_lsf = np.zeros(img.shape, np.uint8)
-        mask_lsf = 1 - cv2.circle(mask_lsf, centre, lsf_length, (1, 1, 1), -1)
-
-    mask_img = np.logical_and(mask_lsf, mask_hsf).astype('uint8')
+    inverse = False
+    if lsf_cut < 0:
+        lsf_cut = abs(lsf_cut)
+        inverse = True
+    mask_img = ring_mask(img, inner=lsf_cut, outer=hsf_cut)
+    if inverse:
+        mask_img = ~mask_img
     img_sf_filtered = np.multiply(img, mask_img)
     return img_sf_filtered
 
@@ -81,26 +67,27 @@ def ring_mask(img, inner, outer):
 
     if inner == 0:
         mask_in = np.ones(img.shape, np.uint8)
+        in_length = 0
     else:
-        if type(inner) is float:
+        if type(inner) is float and inner < 1.0:
             in_length = int(math.floor(inner * smaller_side * 0.5))
         else:
-            in_length = inner
+            in_length = int(inner - 1)
         mask_in = np.zeros(img.shape, np.uint8)
         mask_in = 1 - cv2.circle(mask_in, centre, in_length, (1, 1, 1), -1)
 
     if outer == 0:
         mask_out = np.ones(img.shape, np.uint8)
     else:
-        if type(outer) is float:
+        if type(outer) is float and abs(outer) < 1.0:
             outer = 1 - outer
             out_length = int(math.floor(outer * smaller_side * 0.5))
         elif outer < 0:
-            out_length = centre[0] - abs(outer)
+            out_length = centre[0] - int(abs(outer))
         else:
-            out_length = in_length + outer
+            out_length = in_length + int(outer)
         mask_out = np.zeros(img.shape, np.uint8)
         mask_out = cv2.circle(mask_out, centre, out_length, (1, 1, 1), -1)
 
-    mask_img = np.logical_and(mask_in, mask_out).astype('uint8')
+    mask_img = np.logical_and(mask_in, mask_out)
     return mask_img
