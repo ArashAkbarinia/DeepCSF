@@ -2,6 +2,7 @@
 Utility routines for logging and reporting.
 """
 
+import re
 import torch
 
 
@@ -63,3 +64,30 @@ def inv_normalise_tensor(tensor, mean, std):
         tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
     tensor = tensor.clamp(0, 1)
     return tensor
+
+
+def atof(value):
+    try:
+        return float(value)
+    except ValueError:
+        return value
+
+
+def atoi(value):
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+
+def natural_keys(text, delimiter=None, remove=None):
+    """
+    alist.sort(key=natural_keys) sorts in human order
+    adapted from http://nedbatchelder.com/blog/200712/human_sorting.html
+    """
+    if remove is not None:
+        text = text.replace(remove, '')
+    if delimiter is None:
+        return [atoi(c) for c in re.split(r'(\d+)', text)]
+    else:
+        return [atof(c) for c in text.split(delimiter)]

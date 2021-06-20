@@ -1,8 +1,8 @@
 """
 Plotting the output of CSF tests.
 """
-import sys
 
+import sys
 import numpy as np
 import glob
 from matplotlib import pyplot as plt
