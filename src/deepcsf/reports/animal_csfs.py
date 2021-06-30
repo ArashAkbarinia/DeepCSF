@@ -16,8 +16,14 @@ def generic_model(f, k1, k2, alpha, beta):
 
 def csf(f, method='uhlrich'):
     if method == 'uhlrich':
-        return generic_model(
+        org_f = f
+        if org_f < 1:
+            f = 1
+        sensitivity = generic_model(
             f, k1=295.42, k2=295.92, alpha=0.03902, beta=0.0395
         )
+        if org_f < 1:
+            sensitivity = sensitivity * org_f
+        return sensitivity
     else:
         return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
