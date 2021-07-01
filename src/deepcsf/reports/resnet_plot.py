@@ -205,6 +205,10 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
         ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
         if log_axis:
             ax.set_xscale('log')
+            ax.set_yscale(
+                'symlog',
+                **{'linthreshy': 10e-2, 'linscaley': 0.25, 'subsy': [*range(2, 10)]}
+            )
         if legend:
             ax.legend(loc=legend_loc)
     return fig

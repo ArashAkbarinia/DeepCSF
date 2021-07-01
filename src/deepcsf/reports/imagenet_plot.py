@@ -34,14 +34,16 @@ def _get_sf_ring_accuracies(data_dir, dataset):
 
 def plot_sf_ring_net(net_dir, dataset,
                      figsize=(8, 4), font_size=16, legend_loc='best',
-                     log_axis=False, model_csf=None):
+                     log_axis=False, model_csf=None, normalise=False):
     accs = _get_sf_ring_accuracies(net_dir, dataset)
+    num_freqs = len(accs)
 
-    xaxis = [e / 2 for e in range(1, 113)]
+    xaxis = [e / (num_freqs / 60) for e in range(1, num_freqs + 1)]
     error_rate = 1 - np.array(accs)
 
-    error_rate /= error_rate.max()
-    error_rate = (error_rate - np.min(error_rate)) / np.ptp(error_rate)
+    if normalise:
+        error_rate /= error_rate.max()
+        error_rate = (error_rate - np.min(error_rate)) / np.ptp(error_rate)
 
     net_name = net_dir.split('/')[-2]
 
@@ -57,11 +59,12 @@ def plot_sf_ring_net(net_dir, dataset,
         hcsf_data = np.loadtxt(model_fest_path, delimiter=',')
         xaxis = hcsf_data[0]
         hcsf = hcsf_data[1]
-    else:
+    elif model_csf is not None:
         hcsf = np.array([animal_csfs.csf(f, model_csf) for f in xaxis])
         hcsf /= hcsf.max()
 
-    ax.plot(xaxis, hcsf, '--', color='black', label='Human CSF')
+    if model_csf is not None:
+        ax.plot(xaxis, hcsf, '--', color='black', label='Human CSF')
 
     ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
     ax.set_ylabel('Error Rate (%)', **{'size': font_size})
