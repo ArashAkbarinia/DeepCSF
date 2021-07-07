@@ -25,5 +25,16 @@ def csf(f, method='uhlrich'):
         if org_f < 1:
             sensitivity = sensitivity * org_f
         return sensitivity
+    elif method == 'falcon':
+        f = f * 2
+        org_f = f
+        if org_f < 1:
+            f = 1
+        sensitivity = generic_model(
+            f, k1=424.83, k2=424.87, alpha=0.00953, beta=0.00961
+        )
+        if org_f < 1:
+            sensitivity = sensitivity * org_f
+        return sensitivity
     else:
         return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)

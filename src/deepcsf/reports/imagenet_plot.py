@@ -33,8 +33,9 @@ def _get_sf_ring_accuracies(data_dir, dataset):
 
 
 def plot_sf_ring_net(net_dir, dataset,
-                     figsize=(8, 4), font_size=16, legend_loc='best',
-                     log_axis=False, model_csf=None, normalise=False):
+                     figsize=(8, 6), font_size=16, legend_loc='best',
+                     log_axis=False, model_csf=None, normalise=False,
+                     net_name=None, old_fig=None, plot_params=None):
     accs = _get_sf_ring_accuracies(net_dir, dataset)
     num_freqs = len(accs)
 
@@ -45,14 +46,17 @@ def plot_sf_ring_net(net_dir, dataset,
         error_rate /= error_rate.max()
         error_rate = (error_rate - np.min(error_rate)) / np.ptp(error_rate)
 
-    net_name = net_dir.split('/')[-2]
+    if net_name is None:
+        net_name = net_dir.split('/')[-2]
 
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot(1, 1, 1)
+    if old_fig is None:
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(1, 1, 1)
+    else:
+        fig = old_fig
+        ax = fig.axes[0]
+
     ax.set_title(net_name, **{'size': font_size})
-
-    plot_params = {'color': 'gray', 'marker': 'x', 'linestyle': '-'}
-    ax.plot(xaxis, error_rate, label=net_name, **plot_params)
 
     if model_csf == 'model_fest':
         model_fest_path = '/home/arash/Desktop/projects/deep_csf/model_fest/extracted_avg.csv'
@@ -60,17 +64,29 @@ def plot_sf_ring_net(net_dir, dataset,
         xaxis = hcsf_data[0]
         hcsf = hcsf_data[1]
     elif model_csf is not None:
-        hcsf = np.array([animal_csfs.csf(f, model_csf) for f in xaxis])
+        org_freqs = [e / 2 for e in range(1, 120)]
+        hcsf = np.array([animal_csfs.csf(f, model_csf) for f in org_freqs])
         hcsf /= hcsf.max()
 
-    if model_csf is not None:
-        ax.plot(xaxis, hcsf, '--', color='black', label='Human CSF')
+    if model_csf is not None and old_fig is None:
+        ax.plot(org_freqs, hcsf, '--', color='black', label='Human CSF')
+
+    if plot_params is None:
+        plot_params = {'color': 'green', 'marker': 'x', 'linestyle': '-'}
+    if dataset == 'voc_coco':
+        error_rate = np.interp(org_freqs, xaxis, error_rate)
+        xaxis = org_freqs
+    ax.plot(xaxis, error_rate, label=net_name, **plot_params)
 
     ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
     ax.set_ylabel('Error Rate (%)', **{'size': font_size})
 
     if log_axis:
         ax.set_xscale('log')
+        ax.set_yscale(
+            'symlog',
+            **{'linthreshy': 10e-2, 'linscaley': 0.25, 'subsy': [*range(2, 10)]}
+        )
     ax.legend(loc=legend_loc)
 
     return fig

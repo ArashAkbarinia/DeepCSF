@@ -214,6 +214,28 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
     return fig
 
 
+def _diff_lesion_csf(chn_summary, chn_name, lesion_summary, normalise=False):
+    num_kernels = len(lesion_summary)
+
+    # the original network without lesion
+    f_org_yvals = np.array(chn_summary[0][0]['sensitivities']['all'])
+    f_org_freqs = np.array(chn_summary[0][0]['unique_params']['sf'])
+    if normalise:
+        f_org_yvals /= f_org_yvals.max()
+
+    diffs = []
+    for k in range(num_kernels):
+        # getting the x and y values
+        org_yvals = np.array(lesion_summary[k][chn_name][0][0]['sensitivities']['all'])
+        org_freqs = np.array(lesion_summary[k][chn_name][0][0]['unique_params']['sf'])
+
+        if normalise:
+            org_yvals /= org_yvals.max()
+        diffs.append(f_org_yvals - org_yvals)
+
+    return diffs, f_org_freqs
+
+
 def _plot_lesion_csf(chn_summary, chn_name, lesion_summary,
                      figsize=None, log_axis=False, normalise=True,
                      model_info=None, old_fig=None, chn_info=None):
@@ -357,6 +379,23 @@ def plot_csf_lesion(lesion_path, org_path, area_suf,
             kwargs['model_info'] = None
         net_csf_fig = _plot_lesion_csf(chn_val, chn_key, lesion_summary, **kwargs)
     return net_csf_fig
+
+
+def diff_csf_lesion(lesion_path, org_path, area_suf,
+                    target_size, chns=None, **kwargs):
+    lesion_res = _load_lesion_results(lesion_path, chns=chns, area_suf=area_suf)
+    lesion_summary = _extract_lesion_summary(lesion_res, target_size)
+
+    net_results = _load_network_results(org_path, chns=chns, area_suf=area_suf)
+    net_summary = _extract_network_summary(net_results, target_size)
+
+    lesion_diffs = []
+    freqs = []
+    for chn_key, chn_val in net_summary.items():
+        tmp_lesion_diff, tmp_freq = _diff_lesion_csf(chn_val, chn_key, lesion_summary)
+        lesion_diffs.append(tmp_lesion_diff)
+        freqs.append(tmp_freq)
+    return lesion_diffs, freqs
 
 
 def plot_csf_areas(path, target_size, chns=None, **kwargs):
