@@ -32,6 +32,51 @@ def _get_sf_ring_accuracies(data_dir, dataset):
     return accs
 
 
+def imagenet_sf_ring_report(data_dir):
+    result_files = sorted(
+        glob.glob(data_dir + '/*.csv'),
+        key=report_utils.natural_keys
+    )
+
+    accs = []
+    for file_path in result_files:
+        tmp_res = np.loadtxt(file_path, delimiter=',')
+        current_acc = imagenet_result_summary(tmp_res)
+        accs.append(current_acc)
+    return accs
+
+
+def imagenet_result_summary(predictions):
+    summary_report = dict()
+    summary_report['top1'] = predictions[:, 0].mean()
+    summary_report['top5'] = predictions[:, 1].mean()
+
+    category_inds = imagenet_category_inds()
+    num_categories = category_inds.shape[0]
+    cats_top1 = np.zeros(num_categories)
+    cats_top5 = np.zeros(num_categories)
+    for i in range(num_categories):
+        si = int(category_inds[i, 0])
+        ei = int(category_inds[i, 1])
+        cats_top1[i] = predictions[si:ei, 0].mean()
+        cats_top5[i] = predictions[si:ei, 1].mean()
+
+    summary_report['cats_top1'] = cats_top1
+    summary_report['cats_top5'] = cats_top5
+
+    return summary_report
+
+
+def imagenet_category_inds():
+    num_samples = 50
+    num_classes = 1000
+    num_images = num_samples * num_classes
+    class_inds = np.zeros((num_classes, 2))
+    for j, i in enumerate(range(0, num_images, num_samples)):
+        class_inds[j, :] = [i, i + num_samples]
+    return class_inds
+
+
 def plot_sf_ring_net(net_dir, dataset,
                      figsize=(8, 6), font_size=16, legend_loc='best',
                      log_axis=False, model_csf=None, normalise=False,
