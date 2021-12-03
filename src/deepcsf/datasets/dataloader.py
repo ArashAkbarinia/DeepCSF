@@ -29,9 +29,7 @@ def train_set(db, target_size, preprocess, extra_transformation=None, **kwargs):
         # if train params are passed don't use any random processes
         if kwargs['train_params'] is None:
             scale = (0.08, 1.0)
-            size_transform = cv2_transforms.RandomResizedCrop(
-                target_size, scale=scale
-            )
+            size_transform = cv2_transforms.RandomResizedCrop(target_size, scale=scale)
             pre_transforms = [size_transform, *shared_pre_transforms]
         else:
             pre_transforms = [
@@ -40,19 +38,15 @@ def train_set(db, target_size, preprocess, extra_transformation=None, **kwargs):
                 *shared_pre_transforms
             ]
         post_transforms = [*shared_post_transforms]
-        return _natural_dataset(
-            db, 'train', pre_transforms, post_transforms, **kwargs
-        )
+        return _natural_dataset(db, 'train', pre_transforms, post_transforms, **kwargs)
     elif db in ['gratings']:
         return _get_grating_dataset(
-            shared_pre_transforms, shared_post_transforms, target_size,
-            **kwargs
+            shared_pre_transforms, shared_post_transforms, target_size, **kwargs
         )
     return None
 
 
-def validation_set(db, target_size, preprocess, extra_transformation=None,
-                   **kwargs):
+def validation_set(db, target_size, preprocess, extra_transformation=None, **kwargs):
     mean, std = preprocess
     if extra_transformation is None:
         extra_transformation = []
@@ -65,19 +59,15 @@ def validation_set(db, target_size, preprocess, extra_transformation=None,
             *shared_pre_transforms
         ]
         post_transforms = [*shared_post_transforms]
-        return _natural_dataset(
-            db, 'validation', pre_transforms, post_transforms, **kwargs
-        )
+        return _natural_dataset(db, 'validation', pre_transforms, post_transforms, **kwargs)
     elif db in ['gratings']:
         return _get_grating_dataset(
-            shared_pre_transforms, shared_post_transforms, target_size,
-            **kwargs
+            shared_pre_transforms, shared_post_transforms, target_size, **kwargs
         )
     return None
 
 
-def _natural_dataset(db, which_set, pre_transforms, post_transforms,
-                     data_dir, **kwargs):
+def _natural_dataset(db, which_set, pre_transforms, post_transforms, data_dir, **kwargs):
     torch_pre_transforms = torch_transforms.Compose(pre_transforms)
     torch_post_transforms = torch_transforms.Compose(post_transforms)
     afc_kwargs = {
@@ -100,8 +90,7 @@ def _natural_dataset(db, which_set, pre_transforms, post_transforms,
     return current_db
 
 
-def _get_grating_dataset(pre_transforms, post_transforms, target_size,
-                         data_dir, **kwargs):
+def _get_grating_dataset(pre_transforms, post_transforms, target_size, data_dir, **kwargs):
     torch_pre_transforms = torch_transforms.Compose(pre_transforms)
     torch_post_transforms = torch_transforms.Compose(post_transforms)
     afc_kwargs = {

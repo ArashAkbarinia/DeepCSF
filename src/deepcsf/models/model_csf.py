@@ -23,9 +23,7 @@ class ContrastDiscrimination(nn.Module):
             architecture = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']
 
-        model = pretrained_models.get_pretrained_model(
-            architecture, transfer_weights
-        )
+        model = pretrained_models.get_pretrained_model(architecture, transfer_weights)
         if '_scratch' in architecture:
             architecture = architecture.replace('_scratch', '')
         model = pretrained_models.get_backbone(architecture, model)

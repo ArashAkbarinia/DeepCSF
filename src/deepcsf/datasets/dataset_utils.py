@@ -109,9 +109,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         if len(illuminant_range) == 1:
             ill_val = illuminant_range[0]
         else:
-            ill_val = np.random.uniform(
-                low=illuminant_range[0], high=illuminant_range[1]
-            )
+            ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
     else:
         ill_val = illuminant_range
     # we simulate the illumination with multiplication
@@ -144,9 +142,7 @@ def _gauss_img(img_size):
     x = np.linspace(0, img_size[1], img_size[1]) - midx
     [x, y] = np.meshgrid(x, y)
     sigma = min(img_size[0], img_size[1]) / 6
-    gauss_img = np.exp(
-        -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
-    )
+    gauss_img = np.exp(-(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2)))
 
     gauss_img = gauss_img / np.max(gauss_img)
     if len(img_size) > 2:
@@ -161,10 +157,9 @@ def _cv2_loader(path):
 
 
 class AfcDataset(object):
-    def __init__(self, post_transform=None, pre_transform=None, p=0.5,
-                 contrasts=None, same_transforms=False, colour_space='grey',
-                 vision_type='trichromat', mask_image=None,
-                 illuminant_range=1.0, train_params=None, sf_filter=None):
+    def __init__(self, post_transform=None, pre_transform=None, p=0.5, contrasts=None,
+                 same_transforms=False, colour_space='grey', vision_type='trichromat',
+                 mask_image=None, illuminant_range=1.0, train_params=None, sf_filter=None):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
@@ -189,17 +184,13 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         self.loader = _cv2_loader
 
     def __getitem__(self, index):
-        path = os.path.join(
-            self.root, self.base_folder, "img_align_celeba",
-            self.filename[index]
-        )
+        path = os.path.join(self.root, self.base_folder, "img_align_celeba", self.filename[index])
         img0 = self.loader(path)
 
         img_out, contrast_target = _prepare_stimuli(
-            img0, self.colour_space, self.vision_type, self.contrasts,
-            self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.illuminant_range,
-            sf_filter=self.sf_filter
+            img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
+            self.pre_transform, self.post_transform, self.same_transforms, self.p,
+            self.illuminant_range, sf_filter=self.sf_filter
         )
 
         return img_out, contrast_target, path
@@ -226,10 +217,9 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         path, class_target = self.samples[index]
         img0 = self.loader(path)
         img_out, contrast_target = _prepare_stimuli(
-            img0, self.colour_space, self.vision_type, self.contrasts,
-            self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.illuminant_range,
-            current_param=current_param, sf_filter=self.sf_filter
+            img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
+            self.pre_transform, self.post_transform, self.same_transforms, self.p,
+            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter
         )
 
         return img_out[0], img_out[1], contrast_target, path
@@ -251,16 +241,14 @@ def _create_samples(samples):
 
 
 class GratingImages(AfcDataset, torch_data.Dataset):
-    def __init__(self, samples, afc_kwargs, target_size,
-                 contrast_space=None, theta=None, rho=None, lambda_wave=None):
+    def __init__(self, samples, afc_kwargs, target_size, contrast_space=None, theta=None, rho=None,
+                 lambda_wave=None):
         AfcDataset.__init__(self, **afc_kwargs)
         torch_data.Dataset.__init__(self)
         if type(samples) is dict:
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
-            (
-                self.samples, self.settings, self.illuminant_range
-            ) = _create_samples(samples)
+            self.samples, self.settings, self.illuminant_range = _create_samples(samples)
         else:
             self.samples = samples
             self.settings = None
@@ -344,19 +332,11 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img0 *= gauss_img
             img1 *= gauss_img
         elif self.mask_image == 'fixed_cycle':
-            radius = (
-                int(self.target_size[0] / 2.0),
-                int(self.target_size[1] / 2.0)
-            )
-            [x, y] = np.meshgrid(
-                range(-radius[0], radius[0] + 1),
-                range(-radius[1], radius[1] + 1)
-            )
+            radius = (int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0))
+            [x, y] = np.meshgrid(range(-radius[0], radius[0] + 1), range(-radius[1], radius[1] + 1))
 
             sigma = self.target_size[0] / 6
-            gauss_img = np.exp(
-                -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
-            )
+            gauss_img = np.exp(-(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2)))
 
             gauss_img = gauss_img / np.max(gauss_img)
             img0 *= gauss_img

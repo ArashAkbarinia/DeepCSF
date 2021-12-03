@@ -160,14 +160,10 @@ def _main_worker(args):
         _adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train_log = _train_val(
-            train_loader, model, criterion, optimizer, epoch, args
-        )
+        train_log = _train_val(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        validation_log = _train_val(
-            val_loader, model, criterion, None, epoch, args
-        )
+        validation_log = _train_val(val_loader, model, criterion, None, epoch, args)
 
         model_progress.append([*train_log, *validation_log[1:]])
 
