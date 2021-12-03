@@ -25,6 +25,14 @@ def rgb2dkl(x):
     return rgb012dkl(rgb2double(x))
 
 
+def rgb2dkl01(x):
+    x = rgb2dkl(x)
+    x /= 2
+    x[:, :, 1] += 0.5
+    x[:, :, 2] += 0.5
+    return x
+
+
 def dkl2rgb(x):
     return uint8im(dkl2rgb01(x))
 
@@ -40,6 +48,10 @@ def dkl012rgb01(x):
     x[:, :, 2] -= 0.5
     x *= 2
     return dkl2rgb01(x)
+
+
+def dkl012rgb(x):
+    return uint8im(dkl012rgb01(x))
 
 
 def rgb2double(x):
