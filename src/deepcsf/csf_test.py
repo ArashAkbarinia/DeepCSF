@@ -139,11 +139,7 @@ def main(argv):
         high = max_high
         j = 0
         while csf_flags[i] is not None:
-            print(
-                '%.2d %.3d Doing %f - %f %f %f' % (
-                    i, j, test_sfs[i], csf_flags[i], low, high
-                )
-            )
+            print('%.2d %.3d Doing %f - %f %f %f' % (i, j, test_sfs[i], csf_flags[i], low, high))
 
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
@@ -172,11 +168,7 @@ def main(argv):
             new_contrast, low, high = sensitivity_sf(
                 new_results, test_sfs[i], th=0.75, low=low, high=high
             )
-            if (
-                    abs(csf_flags[i] - max_high) < 1e-3
-                    or new_contrast == csf_flags[i]
-                    or j == 20
-            ):
+            if abs(csf_flags[i] - max_high) < 1e-3 or new_contrast == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
                 csf_flags[i] = None
             else:
