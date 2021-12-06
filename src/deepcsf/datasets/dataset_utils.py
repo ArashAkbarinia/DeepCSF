@@ -371,6 +371,12 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 2]] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
+            elif self.contrast_space == 'lum':
+                # this is really not necessary, but just for the sake of floating point
+                img0[:, :, [1, 2]] = 0.5
+                img0 = colour_spaces.dkl012rgb01(img0)
+                img1[:, :, [1, 2]] = 0.5
+                img1 = colour_spaces.dkl012rgb01(img1)
             elif self.contrast_space != 'rgb':
                 sys.exit('Contrast %s not supported' % self.contrast_space)
 
