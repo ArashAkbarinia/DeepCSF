@@ -44,7 +44,8 @@ def _prepare_vision_types(img, colour_space, vision_type):
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     illuminant_range=1.0, current_param=None, sf_filter=None):
+                     illuminant_range=1.0, current_param=None, sf_filter=None,
+                     contrast_space='rgb'):
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
     # converting to range 0 to 1
     img0 = np.float32(img0) / 255
@@ -99,8 +100,14 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img1 = imutils.filter_img_sf(img1, hsf_cut=hsf_cut, lsf_cut=lsf_cut)
 
     # manipulating the contrast
+    if contrast_space == 'dkl':
+        img0 = colour_spaces.rgb2dkl01(img0)
+        img1 = colour_spaces.rgb2dkl01(img1)
     img0 = imutils.adjust_contrast(img0, contrast0)
     img1 = imutils.adjust_contrast(img1, contrast1)
+    if contrast_space == 'dkl':
+        img0 = colour_spaces.dkl012rgb01(img0)
+        img1 = colour_spaces.dkl012rgb01(img1)
 
     # multiplying by the illuminant
     if illuminant_range is None:
@@ -159,7 +166,8 @@ def _cv2_loader(path):
 class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5, contrasts=None,
                  same_transforms=False, colour_space='grey', vision_type='trichromat',
-                 mask_image=None, illuminant_range=1.0, train_params=None, sf_filter=None):
+                 mask_image=None, illuminant_range=1.0, train_params=None, sf_filter=None,
+                 contrast_space='rgb'):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
@@ -175,6 +183,7 @@ class AfcDataset(object):
             self.train_params = system_utils.read_pickle(train_params)
         self.img_counter = 0
         self.sf_filter = sf_filter
+        self.contrast_space = contrast_space
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -190,7 +199,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, sf_filter=self.sf_filter
+            self.illuminant_range, sf_filter=self.sf_filter, contrast_space=self.contrast_space
         )
 
         return img_out, contrast_target, path
@@ -219,7 +228,8 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter
+            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
+            contrast_space=self.contrast_space
         )
 
         return img_out[0], img_out[1], contrast_target, path
@@ -241,8 +251,7 @@ def _create_samples(samples):
 
 
 class GratingImages(AfcDataset, torch_data.Dataset):
-    def __init__(self, samples, afc_kwargs, target_size, contrast_space=None, theta=None, rho=None,
-                 lambda_wave=None):
+    def __init__(self, samples, afc_kwargs, target_size, theta=None, rho=None, lambda_wave=None):
         AfcDataset.__init__(self, **afc_kwargs)
         torch_data.Dataset.__init__(self)
         if type(samples) is dict:
@@ -255,7 +264,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         if type(target_size) not in [list, tuple]:
             target_size = (target_size, target_size)
         self.target_size = target_size
-        self.contrast_space = contrast_space
         self.theta = theta
         self.rho = rho
         self.lambda_wave = lambda_wave
@@ -310,14 +318,8 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
-            radius = (
-                int(self.target_size[0] / 2.0),
-                int(self.target_size[1] / 2.0)
-            )
-            [x, y] = np.meshgrid(
-                range(-radius[0], radius[0] + 1),
-                range(-radius[1], radius[1] + 1)
-            )
+            radius = (int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0))
+            [x, y] = np.meshgrid(range(-radius[0], radius[0] + 1), range(-radius[1], radius[1] + 1))
             x1 = +x * np.cos(theta) + y * np.sin(theta)
             y1 = -x * np.sin(theta) + y * np.cos(theta)
 
@@ -391,9 +393,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         if self.post_transform is not None:
             img0, img1 = self.post_transform([img0, img1])
-        img_out, contrast_target = _two_pairs_stimuli(
-            img0, img1, contrast0, contrast1, self.p
-        )
+        img_out, contrast_target = _two_pairs_stimuli(img0, img1, contrast0, contrast1, self.p)
 
         item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
 
