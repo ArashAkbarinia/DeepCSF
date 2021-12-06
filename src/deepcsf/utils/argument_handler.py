@@ -59,12 +59,6 @@ def test_arg_parser(argvs, extra_args_fun=None):
         type=float,
         help='The frequencies to be tested (default: None)'
     )
-    misc_group.add_argument(
-        '--contrast_space',
-        default=None,
-        type=str,
-        help='The channel where contrast is manipulated (default: None)'
-    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)
@@ -268,6 +262,12 @@ def _add_input_group(parser):
         required=True,
         type=int,
         help='Target size'
+    )
+    input_group.add_argument(
+        '--contrast_space',
+        default=None,
+        type=str,
+        help='The channel where contrast is manipulated (default: None)'
     )
 
 

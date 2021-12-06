@@ -124,7 +124,8 @@ def _main_worker(args):
         'contrasts': None,
         'illuminant_range': args.illuminant_range,
         'train_params': args.train_params,
-        'sf_filter': args.sf_filter
+        'sf_filter': args.sf_filter,
+        'contrast_space': args.contrast_space
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir
