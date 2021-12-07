@@ -269,6 +269,12 @@ def _add_input_group(parser):
         type=str,
         help='The channel where contrast is manipulated (default: None)'
     )
+    input_group.add_argument(
+        '--same_transforms',
+        action='store_true',
+        default=False,
+        help='Applying same transforms to left/right images (default: False)'
+    )
 
 
 def _add_dataset_group(parser):
