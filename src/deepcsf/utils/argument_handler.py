@@ -275,6 +275,13 @@ def _add_input_group(parser):
         default=False,
         help='Applying same transforms to left/right images (default: False)'
     )
+    input_group.add_argument(
+        '--mask_image',
+        default=None,
+        type=str,
+        choices=['gaussian'],
+        help='Type of mask image (default: None)'
+    )
 
 
 def _add_dataset_group(parser):

@@ -120,7 +120,7 @@ def _main_worker(args):
     db_params = {
         'colour_space': args.colour_space,
         'vision_type': args.vision_type,
-        'mask_image': 'gaussian',
+        'mask_image': args.mask_image,
         'contrasts': None,
         'illuminant_range': args.illuminant_range,
         'train_params': args.train_params,
