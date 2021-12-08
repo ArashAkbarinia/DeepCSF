@@ -279,7 +279,7 @@ def _add_input_group(parser):
         '--mask_image',
         default=None,
         type=str,
-        choices=['gaussian'],
+        choices=['gaussian', 'fixed_cycle'],
         help='Type of mask image (default: None)'
     )
 

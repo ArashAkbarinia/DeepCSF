@@ -148,7 +148,7 @@ def main(argv):
             db_params = {
                 'colour_space': colour_space,
                 'vision_type': args.vision_type,
-                'mask_image': 'fixed_cycle',
+                'mask_image': args.mask_image
             }
 
             db = dataloader.validation_set(
