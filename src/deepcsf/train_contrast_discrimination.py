@@ -49,9 +49,14 @@ def _main_worker(args):
     mean, std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
     # create model
-    model = model_csf.ContrastDiscrimination(
-        args.architecture, args.target_size, args.transfer_weights,
-    )
+    if args.grating_discriminator:
+        model = model_csf.GratingDetector(
+            args.architecture, args.target_size, args.transfer_weights,
+        )
+    else:
+        model = model_csf.ContrastDiscrimination(
+            args.architecture, args.target_size, args.transfer_weights,
+        )
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
