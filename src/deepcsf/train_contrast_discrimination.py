@@ -49,7 +49,7 @@ def _main_worker(args):
     mean, std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
     # create model
-    if args.grating_discriminator:
+    if args.grating_detector:
         model = model_csf.GratingDetector(
             args.architecture, args.target_size, args.transfer_weights,
         )
