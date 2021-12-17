@@ -81,19 +81,6 @@ def activation_arg_parser(argvs, extra_args_fun=None):
         choices=['grating_radius'],
         help='The type of stimuli (default: None)'
     )
-    misc_group.add_argument(
-        '--contrasts',
-        default=None,
-        nargs='+',
-        type=float,
-        help='The contrasts to be tested (default: None)'
-    )
-    misc_group.add_argument(
-        '--contrast_space',
-        default=None,
-        type=str,
-        help='The channel where contrast is manipulated (default: None)'
-    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)
@@ -287,6 +274,13 @@ def _add_input_group(parser):
         action='store_true',
         default=False,
         help='Performing the task of grating detector (default: False)'
+    )
+    input_group.add_argument(
+        '--contrasts',
+        default=None,
+        nargs='+',
+        type=float,
+        help='The contrasts to be tested (default: None)'
     )
 
 

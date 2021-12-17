@@ -126,7 +126,7 @@ def _main_worker(args):
         'colour_space': args.colour_space,
         'vision_type': args.vision_type,
         'mask_image': args.mask_image,
-        'contrasts': None,
+        'contrasts': args.contrasts,
         'illuminant_range': args.illuminant_range,
         'train_params': args.train_params,
         'sf_filter': args.sf_filter,
