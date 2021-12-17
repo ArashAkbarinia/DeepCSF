@@ -55,7 +55,7 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
     if contrasts is None:
         contrast0 = random.uniform(0, 1)
     else:
-        contrast0 = contrasts[0]
+        contrast0 = random.uniform(contrasts[0], contrasts[1])
 
     if 'grey' in colour_space:
         img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
@@ -89,7 +89,11 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
         grating = np.repeat(grating[:, :, np.newaxis], 3, axis=2)
         img0 = (img0 + grating) / 2
     elif contrast_space == 'dkl':
+        chn = random.randint(0, 2)
+        img0[:, :, chn] = (img0[:, :, chn] + grating) / 2
         for i in range(3):
+            if i == chn:
+                continue
             if random.random() < 0.5:
                 img0[:, :, i] = (img0[:, :, i] + grating) / 2
 
@@ -356,6 +360,7 @@ def _random_grating(target_size, contrast0):
         'amp': contrast0, 'omega': omega, 'rho': rho,
         'img_size': [target_size, target_size], 'lambda_wave': lambda_wave
     }
+    print(contrast0, sf)
     img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
     img0 = (img0 + 1) / 2
 
