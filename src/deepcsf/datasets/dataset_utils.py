@@ -520,7 +520,10 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
 
-        return img_out[0], img_out[1], contrast_target, item_settings
+        if self.grating_detector:
+            return img_out[contrast_target], contrast_target, item_settings
+        else:
+            return img_out[0], img_out[1], contrast_target, item_settings
 
     def __len__(self):
         return self.samples

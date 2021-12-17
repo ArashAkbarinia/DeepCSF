@@ -14,17 +14,21 @@ from .models import model_csf, model_utils, lesion_utils
 from .utils import report_utils, system_utils, argument_handler
 
 
-def run_gratings_separate(db_loader, model, out_file, print_freq=0,
-                          preprocess=None, old_results=None):
+def run_gratings_separate(db_loader, model, out_file, print_freq=0, preprocess=None,
+                          old_results=None, grating_detector=False):
     with torch.no_grad():
         header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
         new_results = []
         num_batches = db_loader.__len__()
-        for i, (timg0, timg1, targets, item_settings) in enumerate(db_loader):
-            timg0 = timg0.cuda()
-            timg1 = timg1.cuda()
-
-            out = model(timg0, timg1)
+        for i, data in enumerate(db_loader):
+            if grating_detector:
+                timg0, targets, item_settings = data
+                out = model(timg0)
+            else:
+                timg0, timg1, targets, item_settings = data
+                timg0 = timg0.cuda()
+                timg1 = timg1.cuda()
+                out = model(timg0, timg1)
             preds = out.cpu().numpy().argmax(axis=1)
             targets = targets.numpy()
             item_settings = item_settings.numpy()
@@ -118,10 +122,14 @@ def main(argv):
     test_sfs = np.unique(test_sfs)
     test_thetas = np.linspace(0, np.pi, 7)
     test_rhos = np.linspace(0, np.pi, 4)
-    test_ps = [0.0, 1.0]
 
     # creating the model, args.architecture should be a path
-    model = model_csf.ContrastDiscrimination(args.architecture, target_size)
+    if args.grating_detector:
+        model = model_csf.GratingDetector(args.architecture, target_size)
+        test_ps = [0.0]
+    else:
+        model = model_csf.ContrastDiscrimination(args.architecture, target_size)
+        test_ps = [0.0, 1.0]
     model = lesion_utils.lesion_kernels(
         model, args.lesion_kernels, args.lesion_planes, args.lesion_lines
     )
@@ -148,12 +156,12 @@ def main(argv):
             db_params = {
                 'colour_space': colour_space,
                 'vision_type': args.vision_type,
-                'mask_image': args.mask_image
+                'mask_image': args.mask_image,
+                'grating_detector': args.grating_detector
             }
 
             db = dataloader.validation_set(
-                'gratings', target_size, preprocess,
-                data_dir=test_samples, **db_params
+                'gratings', target_size, preprocess, data_dir=test_samples, **db_params
             )
             db.contrast_space = args.contrast_space
 
@@ -162,8 +170,8 @@ def main(argv):
             )
 
             new_results, all_results = run_gratings_separate(
-                db_loader, model, out_file, args.print_freq,
-                preprocess=visualise_preprocess, old_results=all_results
+                db_loader, model, out_file, args.print_freq, preprocess=visualise_preprocess,
+                old_results=all_results, grating_detector=args.grating_detector
             )
             new_contrast, low, high = sensitivity_sf(
                 new_results, test_sfs[i], th=0.75, low=low, high=high
