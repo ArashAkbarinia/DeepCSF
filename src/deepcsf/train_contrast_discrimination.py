@@ -221,7 +221,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             data_time.update(time.time() - end)
 
             if args.grating_detector:
-                img0, _, target, _ = data
+                img0, target, _ = data
                 img0 = img0.cuda(args.gpu, non_blocking=True)
                 output = model(img0)
             else:

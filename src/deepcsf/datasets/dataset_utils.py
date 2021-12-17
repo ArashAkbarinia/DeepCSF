@@ -119,7 +119,7 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
     if post_transform is not None:
         [img0] = post_transform([img0])
 
-    return (img0, None), contrast_target
+    return img0, contrast_target
 
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
@@ -292,7 +292,10 @@ class CelebA(AfcDataset, tdatasets.CelebA):
             grating_detector=self.grating_detector
         )
 
-        return img_out, contrast_target, path
+        if self.grating_detector:
+            return img_out, contrast_target, path
+        else:
+            return img_out[0], img_out[1], contrast_target, path
 
 
 class ImageFolder(AfcDataset, tdatasets.ImageFolder):
@@ -322,7 +325,10 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
-        return img_out[0], img_out[1], contrast_target, path
+        if self.grating_detector:
+            return img_out, contrast_target, path
+        else:
+            return img_out[0], img_out[1], contrast_target, path
 
 
 def _create_samples(samples):
