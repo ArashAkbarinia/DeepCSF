@@ -360,7 +360,6 @@ def _random_grating(target_size, contrast0):
         'amp': contrast0, 'omega': omega, 'rho': rho,
         'img_size': [target_size, target_size], 'lambda_wave': lambda_wave
     }
-    print(contrast0, sf)
     img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
     img0 = (img0 + 1) / 2
 
