@@ -126,7 +126,8 @@ def _main_worker(args):
         'train_params': args.train_params,
         'sf_filter': args.sf_filter,
         'contrast_space': args.contrast_space,
-        'same_transforms': args.same_transforms
+        'same_transforms': args.same_transforms,
+        'grating_detector': args.grating_detector
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir
@@ -189,10 +190,7 @@ def _main_worker(args):
             is_best, args
         )
         header = 'epoch,t_time,t_loss,t_top1,v_time,v_loss,v_top1'
-        np.savetxt(
-            model_progress_path, np.array(model_progress),
-            delimiter=',', header=header
-        )
+        np.savetxt(model_progress_path, np.array(model_progress), delimiter=',', header=header)
 
 
 def _adjust_learning_rate(optimizer, epoch, args):
@@ -218,16 +216,22 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (img0, img1, target, _) in enumerate(train_loader):
+        for i, data in enumerate(train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
-            img0 = img0.cuda(args.gpu, non_blocking=True)
-            img1 = img1.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+            if args.grating_detector:
+                img0, _, target, _ = data
+                img0 = img0.cuda(args.gpu, non_blocking=True)
+                output = model(img0)
+            else:
+                img0, img1, target, _ = data
+                img0 = img0.cuda(args.gpu, non_blocking=True)
+                img1 = img1.cuda(args.gpu, non_blocking=True)
+                # compute output
+                output = model(img0, img1)
 
-            # compute output
-            output = model(img0, img1)
+            target = target.cuda(args.gpu, non_blocking=True)
             loss = criterion(output, target)
 
             # measure accuracy and record loss

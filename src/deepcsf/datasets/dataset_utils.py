@@ -42,10 +42,98 @@ def _prepare_vision_types(img, colour_space, vision_type):
     return img
 
 
+def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_image,
+                              pre_transform, post_transform, p, illuminant_range=1.0,
+                              sf_filter=None, contrast_space='rgb'):
+    img0 = _prepare_vision_types(img0, colour_space, vision_type)
+    # converting to range 0 to 1
+    img0 = np.float32(img0) / 255
+
+    if pre_transform is not None:
+        [img0] = pre_transform([img0])
+
+    if contrasts is None:
+        contrast0 = random.uniform(0, 1)
+    else:
+        contrast0 = contrasts[0]
+
+    if 'grey' in colour_space:
+        img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
+        if colour_space == 'grey':
+            img0 = np.expand_dims(img0, axis=2)
+        elif colour_space == 'grey3':
+            img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
+
+    # applying SF filter
+    if sf_filter is not None:
+        hsf_cut, lsf_cut = sf_filter
+        img0 = imutils.filter_img_sf(img0, hsf_cut=hsf_cut, lsf_cut=lsf_cut)
+
+    # manipulating the contrast
+    if contrast_space != 'rgb':
+        img0 = colour_spaces.rgb2dkl01(img0)
+
+    if random.random() < p:
+        grating = _random_grating(img0.shape[0], contrast0)
+        contrast_target = 1
+    else:
+        grating = 0.5
+        contrast_target = 0
+    if contrast_space == 'lum':
+        img0[:, :, 0] = (img0[:, :, 0] + grating) / 2
+    elif contrast_space == 'rg':
+        img0[:, :, 1] = (img0[:, :, 1] + grating) / 2
+    elif contrast_space == 'yb':
+        img0[:, :, 2] = (img0[:, :, 2] + grating) / 2
+    elif contrast_space == 'rgb':
+        grating = np.repeat(grating[:, :, np.newaxis], 3, axis=2)
+        img0 = (img0 + grating) / 2
+    elif contrast_space == 'dkl':
+        for i in range(3):
+            if random.random() < 0.5:
+                img0[:, :, i] = (img0[:, :, i] + grating) / 2
+
+    if contrast_space != 'rgb':
+        img0 = colour_spaces.dkl012rgb01(img0)
+
+    # multiplying by the illuminant
+    if illuminant_range is None:
+        illuminant_range = [1e-4, 1.0]
+    if type(illuminant_range) in (list, tuple):
+        if len(illuminant_range) == 1:
+            ill_val = illuminant_range[0]
+        else:
+            ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
+    else:
+        ill_val = illuminant_range
+    # we simulate the illumination with multiplication
+    # is ill_val is very small, the image becomes very dark
+    img0 *= ill_val
+    half_ill = ill_val / 2
+
+    if mask_image == 'gaussian':
+        img0 -= half_ill
+        img0 = img0 * _gauss_img(img0.shape)
+        img0 += half_ill
+
+    if post_transform is not None:
+        [img0] = post_transform([img0])
+
+    return (img0, None), contrast_target
+
+
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
                      illuminant_range=1.0, current_param=None, sf_filter=None,
-                     contrast_space='rgb'):
+                     contrast_space='rgb', grating_detector=False):
+    if grating_detector:
+        if current_param:
+            sys.exit('For grating_detector current_param cant be true')
+        return _prepare_grating_detector(
+            img0, colour_space, vision_type, contrasts, mask_image, pre_transform, post_transform,
+            p, illuminant_range, sf_filter, contrast_space
+        )
+
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
     # converting to range 0 to 1
     img0 = np.float32(img0) / 255
@@ -167,7 +255,7 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5, contrasts=None,
                  same_transforms=False, colour_space='grey', vision_type='trichromat',
                  mask_image=None, illuminant_range=1.0, train_params=None, sf_filter=None,
-                 contrast_space='rgb'):
+                 contrast_space='rgb', grating_detector=False):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
@@ -184,6 +272,7 @@ class AfcDataset(object):
         self.img_counter = 0
         self.sf_filter = sf_filter
         self.contrast_space = contrast_space
+        self.grating_detector = grating_detector
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -199,7 +288,8 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, sf_filter=self.sf_filter, contrast_space=self.contrast_space
+            self.illuminant_range, sf_filter=self.sf_filter, contrast_space=self.contrast_space,
+            grating_detector=self.grating_detector
         )
 
         return img_out, contrast_target, path
@@ -229,7 +319,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
             self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
-            contrast_space=self.contrast_space
+            contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
         return img_out[0], img_out[1], contrast_target, path
@@ -248,6 +338,27 @@ def _create_samples(samples):
     )
     num_samples = np.prod(np.array(settings['lenghts']))
     return num_samples, settings, illuminant_range
+
+
+def _random_grating(target_size, contrast0):
+    rho = random.uniform(0, np.pi)
+    sf = random.randint(1, target_size / 2)
+    lambda_wave = ((target_size / 2) / np.pi) / sf
+    theta = random.uniform(0, np.pi)
+    omega = [np.cos(theta), np.sin(theta)]
+    sinusoid_param = {
+        'amp': contrast0, 'omega': omega, 'rho': rho,
+        'img_size': [target_size, target_size], 'lambda_wave': lambda_wave
+    }
+    img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
+    img0 = (img0 + 1) / 2
+
+    # if target size is even, the generated stimuli is 1 pixel larger.
+    if np.mod(target_size, 2) == 0:
+        img0 = img0[:-1]
+    if np.mod(target_size, 2) == 0:
+        img0 = img0[:, :-1]
+    return img0
 
 
 class GratingImages(AfcDataset, torch_data.Dataset):

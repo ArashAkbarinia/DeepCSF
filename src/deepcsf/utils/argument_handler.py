@@ -282,6 +282,12 @@ def _add_input_group(parser):
         choices=['gaussian', 'fixed_cycle'],
         help='Type of mask image (default: None)'
     )
+    input_group.add_argument(
+        '--grating_detector',
+        action='store_true',
+        default=False,
+        help='Performing the task of grating detector (default: False)'
+    )
 
 
 def _add_dataset_group(parser):
