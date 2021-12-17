@@ -23,6 +23,7 @@ def run_gratings_separate(db_loader, model, out_file, print_freq=0, preprocess=N
         for i, data in enumerate(db_loader):
             if grating_detector:
                 timg0, targets, item_settings = data
+                timg0 = timg0.cuda()
                 out = model(timg0)
             else:
                 timg0, timg1, targets, item_settings = data
