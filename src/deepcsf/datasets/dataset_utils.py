@@ -76,26 +76,28 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
     if random.random() < p:
         grating = _random_grating(img0.shape[0], contrast0)
         contrast_target = 1
+
+        if contrast_space == 'lum':
+            img0[:, :, 0] = (img0[:, :, 0] + grating) / 2
+        elif contrast_space == 'rg':
+            img0[:, :, 1] = (img0[:, :, 1] + grating) / 2
+        elif contrast_space == 'yb':
+            img0[:, :, 2] = (img0[:, :, 2] + grating) / 2
+        elif contrast_space == 'rgb':
+            grating = np.repeat(grating[:, :, np.newaxis], 3, axis=2)
+            img0 = (img0 + grating) / 2
+        elif contrast_space == 'dkl':
+            chn = random.randint(0, 2)
+            img0[:, :, chn] = (img0[:, :, chn] + grating) / 2
+            for i in range(3):
+                if i == chn:
+                    continue
+                if random.random() < 0.5:
+                    img0[:, :, i] = (img0[:, :, i] + grating) / 2
     else:
         grating = 0.5
         contrast_target = 0
-    if contrast_space == 'lum':
-        img0[:, :, 0] = (img0[:, :, 0] + grating) / 2
-    elif contrast_space == 'rg':
-        img0[:, :, 1] = (img0[:, :, 1] + grating) / 2
-    elif contrast_space == 'yb':
-        img0[:, :, 2] = (img0[:, :, 2] + grating) / 2
-    elif contrast_space == 'rgb':
-        grating = np.repeat(grating[:, :, np.newaxis], 3, axis=2)
         img0 = (img0 + grating) / 2
-    elif contrast_space == 'dkl':
-        chn = random.randint(0, 2)
-        img0[:, :, chn] = (img0[:, :, chn] + grating) / 2
-        for i in range(3):
-            if i == chn:
-                continue
-            if random.random() < 0.5:
-                img0[:, :, i] = (img0[:, :, i] + grating) / 2
 
     if contrast_space != 'rgb':
         img0 = colour_spaces.dkl012rgb01(img0)
