@@ -12,6 +12,7 @@ from torchvision.models import segmentation
 
 from . import model_utils
 from . import vqvae
+from .taskonomy import taskonomy_network
 
 
 class LayerActivation(nn.Module):
@@ -76,6 +77,8 @@ def _resnet_features(model, network_name, layer):
             layer = 4
             if network_name in ['resnet18', 'resnet34']:
                 org_classes = 524288
+            elif 'taskonomy_' in network_name:
+                org_classes = 492032
             else:
                 org_classes = 524288
         elif layer == 'area1':
@@ -85,11 +88,13 @@ def _resnet_features(model, network_name, layer):
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 524288
+            elif 'taskonomy_' in network_name:
+                org_classes = 492032
             else:
                 org_classes = 2097152
         elif layer == 'area2':
             layer = 6
-            if network_name in [
+            if 'taskonomy_' in network_name or network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
@@ -120,8 +125,14 @@ def _resnet_features(model, network_name, layer):
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
                 org_classes = 4194304
+            elif 'taskonomy_' in network_name:
+                org_classes = 1048576
             else:
                 org_classes = 262144
+        elif layer == 'encoder':
+            if 'taskonomy_' in network_name:
+                layer = len(list(model.children()))
+                org_classes = 8 * 16 * 16 * 2
         else:
             sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
@@ -129,7 +140,14 @@ def _resnet_features(model, network_name, layer):
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if os.path.isfile(transfer_weights[0]):
+    if 'taskonomy_' in network_name:
+        # NOTE: always assumed pretrained
+        feature_task = network_name.replace('taskonomy_', '')
+        model = taskonomy_network.TaskonomyEncoder()
+        feature_type_url = taskonomy_network.TASKONOMY_PRETRAINED_URLS[feature_task + '_encoder']
+        checkpoint = torch.utils.model_zoo.load_url(feature_type_url, model_dir=None, progress=True)
+        model.load_state_dict(checkpoint['state_dict'])
+    elif os.path.isfile(transfer_weights[0]):
         # FIXME: cheap hack!
         if 'vqvae' in network_name or 'vqvae' in transfer_weights[0]:
             vqvae_info = torch.load(transfer_weights[0], map_location='cpu')
@@ -144,8 +162,7 @@ def get_pretrained_model(network_name, transfer_weights):
             kl = vqvae_info['backbone']['kl']
             model = vqvae.Backbone_VQ_VAE(
                 hidden, k=k, kl=kl, num_channels=3, colour_space='rgb2rgb',
-                task=None, out_chns=3, cos_distance=False,
-                use_decor_loss=False, backbone=backbone
+                task=None, out_chns=3, cos_distance=False, use_decor_loss=False, backbone=backbone
             )
             model.load_state_dict(vqvae_info['state_dict'])
             print('Loaded the VQVAE model!')
@@ -155,25 +172,17 @@ def get_pretrained_model(network_name, transfer_weights):
                 num_classes=1000 if 'class' in transfer_weights[2] else 21
             )
     elif '_scratch' in network_name:
-        model = model_utils.which_architecture(
-            network_name.replace('_scratch', '')
-        )
-    elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
-          'deeplab' in network_name
-    ):
+        model = model_utils.which_architecture(network_name.replace('_scratch', ''))
+    elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
         model = segmentation.__dict__[network_name](pretrained=True)
     else:
-        model = model_utils.which_network(
-            transfer_weights[0], 'classification', num_classes=1000
-        )
+        model = model_utils.which_network(transfer_weights[0], 'classification', num_classes=1000)
     return model
 
 
 def get_backbone(network_name, model):
     if 'vqvae' in network_name:
         return model.backbone_encoder.features
-    elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
-          'deeplab' in network_name
-    ):
+    elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
         return model.backbone
     return model
