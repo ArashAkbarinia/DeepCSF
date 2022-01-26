@@ -408,3 +408,66 @@ def plot_csf_areas(path, target_size, chns=None, **kwargs):
             kwargs['model_info'] = None
         net_csf_fig = _plot_chn_csf(chn_val, chn_key, **kwargs)
     return net_csf_fig
+
+
+def raw2csf(path, target_size, ax=None, normalise=True, model_info=None, legend=True,
+            legend_dis=False, legend_loc='best', font_size=16, log_axis=False, title=None):
+    raw_data = np.loadtxt(path, delimiter=',')
+    test_summary = _extract_data(raw_data, target_size)
+
+    # def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
+    #                   normalise=True, model_info=None, old_fig=None,
+    #                   chn_info=None, legend_dis=False, legend=True, legend_loc='best',
+    #                   font_size=16):
+
+    # getting the x and y values
+    org_yvals = np.array(test_summary['sensitivities']['all'])
+    org_freqs = np.array(test_summary['unique_params']['sf'])
+
+    if normalise:
+        org_yvals /= org_yvals.max()
+
+    if ax is not None:
+        if title is not None:
+            ax.set_title(title, **{'size': font_size})
+        label, chn_params = _chn_plot_params('lum')
+
+        # first plot the human CSF
+        if model_info is not None:
+            model_name, plot_model = model_info
+            if plot_model:
+                hcsf = np.array([animal_csfs.csf(f, model_name) for f in org_freqs])
+                hcsf /= hcsf.max()
+                hcsf *= np.max(org_yvals)
+                ax.plot(org_freqs, hcsf, '--', color='black', label='human')
+
+            # use interpolation for corelation
+            int_freqs = np.array(test_summary['unique_params']['sf_int'])
+            hcsf = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
+            hcsf /= hcsf.max()
+
+            int_yvals = np.array(test_summary['sensitivities']['all_int'])
+            int_yvals /= int_yvals.max()
+            p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
+            if not legend:
+                suffix_label = ''
+            elif legend_dis:
+                euc_dis = np.linalg.norm(hcsf - int_yvals)
+                suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+            else:
+                suffix_label = ' [r=%.2f]' % p_corr
+        else:
+            suffix_label = ''
+        chn_label = '%s%s' % (label, suffix_label)
+        ax.plot(org_freqs, org_yvals, label=chn_label, **chn_params)
+
+        ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
+        ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
+        if log_axis:
+            ax.set_xscale('log')
+            ax.set_yscale(
+                'symlog', **{'linthresh': 10e-2, 'linscale': 0.25, 'subs': [*range(2, 10)]}
+            )
+        if legend:
+            ax.legend(loc=legend_loc)
+    return ax
