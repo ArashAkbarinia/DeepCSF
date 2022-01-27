@@ -410,15 +410,10 @@ def plot_csf_areas(path, target_size, chns=None, **kwargs):
     return net_csf_fig
 
 
-def raw2csf(path, target_size, ax=None, normalise=True, model_info=None, legend=True,
+def raw2csf(path, target_size, ax=None, normalise=True, model_info=None, legend=True, chn_info=None,
             legend_dis=False, legend_loc='best', font_size=16, log_axis=False, title=None):
     raw_data = np.loadtxt(path, delimiter=',')
     test_summary = _extract_data(raw_data, target_size)
-
-    # def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
-    #                   normalise=True, model_info=None, old_fig=None,
-    #                   chn_info=None, legend_dis=False, legend=True, legend_loc='best',
-    #                   font_size=16):
 
     # getting the x and y values
     org_yvals = np.array(test_summary['sensitivities']['all'])
@@ -430,7 +425,10 @@ def raw2csf(path, target_size, ax=None, normalise=True, model_info=None, legend=
     if ax is not None:
         if title is not None:
             ax.set_title(title, **{'size': font_size})
-        label, chn_params = _chn_plot_params('lum')
+        if chn_info is None:
+            label, chn_params = _chn_plot_params('lum')
+        else:
+            label, chn_params = chn_info
 
         # first plot the human CSF
         if model_info is not None:
