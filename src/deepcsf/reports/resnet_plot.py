@@ -468,4 +468,6 @@ def raw2csf(path, target_size, ax=None, normalise=True, model_info=None, legend=
             )
         if legend:
             ax.legend(loc=legend_loc)
-    return ax
+        return ax
+    else:
+        return org_freqs, org_yvals
