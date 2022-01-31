@@ -84,6 +84,10 @@ def sensitivity_sf(result_mat, sf, th=0.75, low=0, high=1):
 
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
+    # NOTE: a hack to handle taskonomy preprocessing
+    if 'taskonomy' in args.architecture:
+        args.colour_space = 'taskonomy_rgb'
+
     colour_space = args.colour_space
     target_size = args.target_size
 

@@ -226,7 +226,7 @@ def _add_input_group(parser):
         default='rgb',
         type=str,
         choices=[
-            'rgb', 'imagenet_rgb',
+            'rgb', 'imagenet_rgb', 'taskonomy_rgb',
             'lab',
             'grey', 'grey3'
         ],
