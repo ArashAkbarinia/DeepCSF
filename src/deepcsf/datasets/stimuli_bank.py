@@ -17,6 +17,20 @@ def sinusoid_grating(img_size, amp, omega, rho, lambda_wave):
     return stimuli
 
 
+def circular_clip(img):
+    target_size = img.shape
+    rows, cols = target_size
+    rad_length = round(np.minimum(rows, cols) / 2).astype('int')
+
+    centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
+
+    mask_img = np.zeros(img.shape, np.uint8)
+    mask_img = cv2.circle(mask_img, centre, rad_length, (1, 1, 1), -1)
+
+    img = np.multiply(img, mask_img)
+    return img
+
+
 def circular_gratings(contrast, rad_length, sf_cpi=None, target_size=None, theta=0, rho=0):
     if target_size is None:
         target_size = [256, 256]
