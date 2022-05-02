@@ -162,7 +162,7 @@ def main(argv):
     }
     criterion = nn.CrossEntropyLoss().cuda()
 
-    out_file = os.path.join(out_file, '_evolution.csv')
+    out_file = out_file + '_evolution.csv'
     header = 'SF,ACC,Contrast'
     all_results = []
     for i in range(len(csf_flags)):
