@@ -124,14 +124,12 @@ def main(argv):
     if freqs is None:
         sf_base = ((target_size / 2) / np.pi)
         readable_sfs = [i for i in range(1, int(target_size / 2) + 1) if target_size % i == 0]
-        test_sfs = [sf_base / e for e in readable_sfs]
+        lambda_waves = [sf_base / e for e in readable_sfs]
     else:
         if len(freqs) == 3:
-            test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
+            lambda_waves = np.linspace(freqs[0], freqs[1], int(freqs[2]))
         else:
-            test_sfs = freqs
-    # so the sfs gets sorted
-    test_sfs = np.unique(test_sfs)
+            lambda_waves = freqs
     test_thetas = np.linspace(0, np.pi, 7)
     test_rhos = np.linspace(0, np.pi, 4)
 
@@ -152,7 +150,7 @@ def main(argv):
     min_low = 0.0
     mid_start = (min_low + max_high) / 2
 
-    csf_flags = [mid_start for _ in test_sfs]
+    csf_flags = [mid_start for _ in lambda_waves]
 
     db_params = {
         'colour_space': colour_space,
@@ -163,7 +161,7 @@ def main(argv):
     criterion = nn.CrossEntropyLoss().cuda()
 
     out_file = out_file + '_evolution.csv'
-    header = 'SF,ACC,Contrast'
+    header = 'LambdaWave,SF,ACC,Contrast'
     all_results = []
     for i in range(len(csf_flags)):
         low = min_low
@@ -171,9 +169,8 @@ def main(argv):
         mid = mid_start
         j = 0
         while csf_flags[i] is not None:
-
             test_samples = {
-                'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
+                'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]],
                 'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
             }
 
@@ -188,8 +185,8 @@ def main(argv):
 
             epoch_out = _train_val(db_loader, model, criterion, None, -1, args)
             accuracy = epoch_out[3] / 100
-            print(test_sfs[i], csf_flags[i], accuracy, low, high)
-            all_results.append(np.array([readable_sfs[i], accuracy, mid]))
+            print(lambda_waves[i], csf_flags[i], accuracy, low, high)
+            all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
             if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
