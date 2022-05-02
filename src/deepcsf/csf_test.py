@@ -195,6 +195,7 @@ def main(argv):
                 print('had to skip', csf_flags[i])
                 csf_flags[i] = None
             else:
+                low, mid, high = new_low, new_mid, new_high
                 csf_flags[i] = new_mid
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
