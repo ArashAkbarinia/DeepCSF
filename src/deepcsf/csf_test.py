@@ -6,12 +6,14 @@ import numpy as np
 import os
 
 import torch
+import torch.nn as nn
 
 from skimage import io
 
 from .datasets import dataloader
 from .models import model_csf, model_utils, lesion_utils
 from .utils import report_utils, system_utils, argument_handler
+from train_contrast_discrimination import _train_val
 
 
 def run_gratings_separate(db_loader, model, out_file, print_freq=0, preprocess=None,
@@ -82,6 +84,23 @@ def sensitivity_sf(result_mat, sf, th=0.75, low=0, high=1):
         return (high + contrast_i) / 2, contrast_i, high
 
 
+def _compute_mean(a, b):
+    c = (a + b) / 2
+    return c
+
+
+def _midpoint_sf(accuracy, low, mid, high, th=0.75):
+    diff_acc = accuracy - th
+    if abs(diff_acc) < 0.005:
+        return None, None, None
+    elif diff_acc > 0:
+        new_mid = _compute_mean(low, mid)
+        return low, new_mid, mid
+    else:
+        new_mid = _compute_mean(high, mid)
+        return mid, new_mid, high
+
+
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
     # NOTE: a hack to handle taskonomy preprocessing
@@ -103,21 +122,9 @@ def main(argv):
     # testing setting
     freqs = args.freqs
     if freqs is None:
-        if target_size == 256:
-            t4s = [
-                target_size / 2, target_size / 2.5, target_size / 3,
-                target_size / 3.5, target_size / 3.75, target_size / 4,
-            ]
-        else:
-            # assuming 128
-            t4s = [64]
-
         sf_base = ((target_size / 2) / np.pi)
-        test_sfs = [
-            sf_base / e for e in
-            [*np.arange(1, 21), *np.arange(21, 61, 5),
-             *np.arange(61, t4s[-1], 25), *t4s]
-        ]
+        readable_sfs = [i for i in range(1, (target_size + 1)) if target_size % i == 0]
+        test_sfs = [sf_base / e for e in readable_sfs]
     else:
         if len(freqs) == 3:
             test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
@@ -142,27 +149,34 @@ def main(argv):
     model.cuda()
 
     max_high = 1.0
-    mid_contrast = (0 + max_high) / 2
+    min_low = 0.0
+    mid_start = (min_low + max_high) / 2
 
     all_results = None
-    csf_flags = [mid_contrast for _ in test_sfs]
+    csf_flags = [mid_start for _ in test_sfs]
 
+    db_params = {
+        'colour_space': colour_space,
+        'vision_type': args.vision_type,
+        'mask_image': args.mask_image,
+        'grating_detector': args.grating_detector
+    }
+    criterion = nn.CrossEntropyLoss().cuda()
+
+    out_file = os.path.join(out_file, '_evolution.csv')
+    header = 'SF,ACC,Contrast'
+    all_results = []
     for i in range(len(csf_flags)):
-        low = 0
+        low = min_low
         high = max_high
+        mid = mid_start
         j = 0
         while csf_flags[i] is not None:
-            print('%.2d %.3d Doing %f - %f %f %f' % (i, j, test_sfs[i], csf_flags[i], low, high))
+            print(test_sfs[i], csf_flags[i], accuracy, low, high)
 
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
                 'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
-            }
-            db_params = {
-                'colour_space': colour_space,
-                'vision_type': args.vision_type,
-                'mask_image': args.mask_image,
-                'grating_detector': args.grating_detector
             }
 
             db = dataloader.validation_set(
@@ -171,19 +185,17 @@ def main(argv):
             db.contrast_space = args.contrast_space
 
             db_loader = torch.utils.data.DataLoader(
-                db, batch_size=1, shuffle=False, num_workers=0, pin_memory=True
+                db, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=True
             )
 
-            new_results, all_results = run_gratings_separate(
-                db_loader, model, out_file, args.print_freq, preprocess=visualise_preprocess,
-                old_results=all_results, grating_detector=args.grating_detector
-            )
-            new_contrast, low, high = sensitivity_sf(
-                new_results, test_sfs[i], th=0.75, low=low, high=high
-            )
-            if abs(csf_flags[i] - max_high) < 1e-3 or new_contrast == csf_flags[i] or j == 20:
+            epoch_out = _train_val(db_loader, model, criterion, None, -1, args)
+            accuracy = epoch_out[3] / 100
+            all_results.append(np.array([readable_sfs[i], accuracy, mid]))
+            new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
+            if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
                 csf_flags[i] = None
             else:
-                csf_flags[i] = new_contrast
+                csf_flags[i] = new_mid
             j += 1
+        np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)

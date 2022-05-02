@@ -32,8 +32,7 @@ def main(argv):
 
     # preparing the output folder
     args.output_dir = '%s/networks/%s/t%.3d/%s/%s/' % (
-        args.output_dir, args.dataset, args.target_size, args.architecture,
-        args.experiment_name
+        args.output_dir, args.dataset, args.target_size, args.architecture, args.experiment_name
     )
     system_utils.create_dir(args.output_dir)
 
@@ -208,7 +207,7 @@ def _adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def _train_val(train_loader, model, criterion, optimizer, epoch, args):
+def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     batch_time = report_utils.AverageMeter()
     data_time = report_utils.AverageMeter()
     losses = report_utils.AverageMeter()
@@ -225,7 +224,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, data in enumerate(train_loader):
+        for i, data in enumerate(db_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
@@ -266,7 +265,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                     'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                        epoch, i, len(train_loader), batch_time=batch_time,
+                        epoch, i, len(db_loader), batch_time=batch_time,
                         data_time=data_time, loss=losses, top1=top1
                     )
                 )
