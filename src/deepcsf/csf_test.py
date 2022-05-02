@@ -123,7 +123,7 @@ def main(argv):
     freqs = args.freqs
     if freqs is None:
         sf_base = ((target_size / 2) / np.pi)
-        readable_sfs = [i for i in range(1, (target_size + 1)) if target_size % i == 0]
+        readable_sfs = [i for i in range(1, int(target_size / 2) + 1) if target_size % i == 0]
         test_sfs = [sf_base / e for e in readable_sfs]
     else:
         if len(freqs) == 3:
