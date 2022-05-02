@@ -13,7 +13,7 @@ from skimage import io
 from .datasets import dataloader
 from .models import model_csf, model_utils, lesion_utils
 from .utils import report_utils, system_utils, argument_handler
-from train_contrast_discrimination import _train_val
+from .train_contrast_discrimination import _train_val
 
 
 def run_gratings_separate(db_loader, model, out_file, print_freq=0, preprocess=None,
