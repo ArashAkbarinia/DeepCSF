@@ -152,7 +152,6 @@ def main(argv):
     min_low = 0.0
     mid_start = (min_low + max_high) / 2
 
-    all_results = None
     csf_flags = [mid_start for _ in test_sfs]
 
     db_params = {
@@ -172,7 +171,6 @@ def main(argv):
         mid = mid_start
         j = 0
         while csf_flags[i] is not None:
-            print(test_sfs[i], csf_flags[i], accuracy, low, high)
 
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
@@ -190,6 +188,7 @@ def main(argv):
 
             epoch_out = _train_val(db_loader, model, criterion, None, -1, args)
             accuracy = epoch_out[3] / 100
+            print(test_sfs[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([readable_sfs[i], accuracy, mid]))
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
             if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
