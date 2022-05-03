@@ -10,7 +10,7 @@ import torchvision.transforms as torch_transforms
 from . import dataset_utils
 from . import cv2_transforms
 
-NATURAL_DATASETS = ['imagenet', 'celeba', 'land']
+NATURAL_DATASETS = ['imagenet', 'celeba', 'land', 'bw']
 
 
 def train_set(db, target_size, preprocess, extra_transformation=None, **kwargs):
@@ -28,7 +28,7 @@ def train_set(db, target_size, preprocess, extra_transformation=None, **kwargs):
     if db in NATURAL_DATASETS:
         # if train params are passed don't use any random processes
         if kwargs['train_params'] is None:
-            scale = (0.08, 1.0)
+            scale = (0.8, 1.0)
             size_transform = cv2_transforms.RandomResizedCrop(target_size, scale=scale)
             pre_transforms = [size_transform, *shared_pre_transforms]
         else:
@@ -85,6 +85,9 @@ def _natural_dataset(db, which_set, pre_transforms, post_transforms, data_dir, *
         split = 'test' if which_set == 'validation' else 'train'
         natural_kwargs = {'root': data_dir, 'split': split}
         current_db = dataset_utils.CelebA(afc_kwargs, natural_kwargs)
+    elif db == 'bw':
+        shape_kwargs = {'root': data_dir, 'background': 128}
+        current_db = dataset_utils.BinaryShapes(afc_kwargs, shape_kwargs)
     else:
         sys.exit('Dataset %s is not supported!' % db)
     return current_db

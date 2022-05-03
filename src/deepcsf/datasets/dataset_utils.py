@@ -6,8 +6,10 @@ import sys
 import os
 import numpy as np
 import random
+import glob
 
 import cv2
+from skimage import io
 from torchvision import datasets as tdatasets
 from torch.utils import data as torch_data
 
@@ -324,6 +326,114 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
 
         path, class_target = self.samples[index]
         img0 = self.loader(path)
+        img_out, contrast_target = _prepare_stimuli(
+            img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
+            self.pre_transform, self.post_transform, self.same_transforms, self.p,
+            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
+            contrast_space=self.contrast_space, grating_detector=self.grating_detector
+        )
+
+        if self.grating_detector:
+            return img_out, contrast_target, path
+        else:
+            return img_out[0], img_out[1], contrast_target, path
+
+
+class ShapeDataset(torch_data.Dataset):
+    def __init__(self, root, background=None, **kwargs):
+        self.root = root
+        self.target_size = (224, 224)
+        self.mask_size = (128, 128)
+        self.imgdir = '%s/shape2D/' % self.root
+        self.bg = background
+
+    def _prepare_out_imgs(self, bw_img, target_colour, place_fun):
+        mask = cv2.resize(bw_img, self.mask_size, interpolation=cv2.INTER_NEAREST)
+        current_colour = target_colour
+        if os.path.exists(self.bg):
+            bg_img = io.imread(self.bg)
+            mask_img = cv2.resize(bg_img, self.mask_size, interpolation=cv2.INTER_NEAREST)
+            img = cv2.resize(bg_img, self.target_size, interpolation=cv2.INTER_NEAREST)
+        elif self.bg == 'rnd':
+            mask_img = np.random.randint(0, 256, (*self.mask_size, 3), dtype='uint8')
+            img = np.random.randint(0, 256, (*self.target_size, 3), dtype='uint8')
+        else:
+            mask_img = np.zeros((*self.mask_size, 3), dtype='uint8') + int(self.bg)
+            img = np.zeros((*self.target_size, 3), dtype='uint8') + int(self.bg)
+        # converting images to float
+        mask_img = mask_img.astype('float32') / 255
+        img = img.astype('float32') / 255
+
+        for chn_ind in range(3):
+            current_chn = mask_img[:, :, chn_ind]
+            current_chn[mask == 255] = current_colour[chn_ind]
+
+        srow, scol = place_fun(self.mask_size, self.target_size)
+        erow = srow + self.mask_size[0]
+        ecol = scol + self.mask_size[1]
+        img[srow:erow, scol:ecol] = mask_img
+
+        return (img * 255).astype('uint8')
+
+
+def _random_place(mask_size, target_size):
+    srow = random.randint(0, target_size[0] - mask_size[0])
+    scol = random.randint(0, target_size[1] - mask_size[1])
+
+    return srow, scol
+
+
+class ShapeTrain(ShapeDataset):
+
+    def __init__(self, root, transform=None, colour_dist=None, **kwargs):
+        ShapeDataset.__init__(self, root, transform=transform, **kwargs)
+        if self.bg is None:
+            self.bg = 'rnd'
+        self.angles = (1, 11)
+        self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
+        self.colour_dist = colour_dist
+        if self.colour_dist is not None:
+            self.colour_dist = np.loadtxt(self.colour_dist, delimiter=',', dtype=int)
+
+    def _prepare_train_imgs(self, mask_img, target_colour):
+        target_colour = np.array(target_colour).astype('float32') / 255
+        return self._prepare_out_imgs(mask_img, target_colour, _random_place)
+
+    def _get_target_colour(self):
+        if self.colour_dist is not None:
+            rand_row = random.randint(0, len(self.colour_dist) - 1)
+            target_colour = self.colour_dist[rand_row]
+        else:
+            target_colour = [random.randint(0, 255) for _ in range(3)]
+        return target_colour
+
+    def __len__(self):
+        return len(self.img_paths)
+
+
+class BinaryShapes(AfcDataset, ShapeTrain):
+    def __init__(self, afc_kwargs, shape_kwargs):
+        AfcDataset.__init__(self, **afc_kwargs)
+        ShapeTrain.__init__(self, **shape_kwargs)
+        self.loader = _cv2_loader
+
+    def __getitem__(self, index):
+        current_param = None
+        if self.train_params is not None:
+            index = self.train_params['image_inds'][self.img_counter]
+            current_param = {
+                'ps': self.train_params['ps'][self.img_counter],
+                'contrasts': self.train_params['contrasts'][self.img_counter],
+                'hflips': self.train_params['hflips'][self.img_counter],
+                'crops': self.train_params['crops'][self.img_counter]
+            }
+            self.img_counter += 1
+
+        path = self.img_paths[index]
+        mask_img = io.imread(path)
+        target_colour = self._get_target_colour()
+        img0 = self._prepare_train_imgs(mask_img, target_colour)
+
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
