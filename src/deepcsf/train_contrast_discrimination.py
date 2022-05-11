@@ -33,8 +33,9 @@ def main(argv):
     args.num_classes = 2
 
     # preparing the output folder
-    args.output_dir = '%s/networks/%s/t%.3d/%s/%s/' % (
-        args.output_dir, args.dataset, args.target_size, args.architecture, args.experiment_name
+    layer = args.transfer_weights[1]
+    args.output_dir = '%s/networks/%s/%s/%s/%s/' % (
+        args.output_dir, args.dataset, args.architecture, args.experiment_name, layer
     )
     system_utils.create_dir(args.output_dir)
 
@@ -51,7 +52,7 @@ def main(argv):
 
 
 def _main_worker(args):
-    mean, std = model_utils.get_mean_std(args.colour_space, args.vision_type)
+    args.mean, args.std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
     # create model
     if args.grating_detector:
@@ -145,7 +146,7 @@ def _main_worker(args):
         # this would be only for the grating dataset to generate
         path_or_sample = args.train_samples
     train_dataset = dataloader.train_set(
-        args.dataset, args.target_size, preprocess=(mean, std),
+        args.dataset, args.target_size, preprocess=(args.mean, args.std),
         extra_transformation=train_trans, data_dir=path_or_sample, **db_params
     )
 
@@ -159,7 +160,7 @@ def _main_worker(args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = dataloader.validation_set(
-        args.dataset, args.target_size, preprocess=(mean, std),
+        args.dataset, args.target_size, preprocess=(args.mean, args.std),
         extra_transformation=valid_trans, data_dir=path_or_sample, **db_params
     )
 
@@ -191,7 +192,7 @@ def _main_worker(args):
                 'epoch': epoch,
                 'arch': args.architecture,
                 'transfer_weights': args.transfer_weights,
-                'preprocessing': {'mean': mean, 'std': std},
+                'preprocessing': {'mean': args.mean, 'std': args.std},
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
@@ -224,7 +225,10 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     else:
         model.eval()
         num_samples = args.val_samples
-        tb_writer = args.tb_writers['val']
+        if epoch == -1:
+            tb_writer = args.tb_writers['test']
+        else:
+            tb_writer = args.tb_writers['val']
 
     end = time.time()
     with torch.set_grad_enabled(is_train):

@@ -7,6 +7,7 @@ import os
 
 import torch
 import torch.nn as nn
+from tensorboardX import SummaryWriter
 
 from skimage import io
 
@@ -116,7 +117,12 @@ def main(argv):
     if os.path.exists(out_file + '.csv'):
         return
 
+    args.tb_writers = {}
+    for mode in ["test"]:
+        args.tb_writers[mode] = SummaryWriter(os.path.join(args.output_dir, mode))
+
     preprocess = model_utils.get_mean_std(args.colour_space, args.vision_type)
+    args.mean, args.std = preprocess
     visualise_preprocess = preprocess if args.visualise else None
 
     # testing setting
@@ -163,12 +169,16 @@ def main(argv):
     out_file = out_file + '_evolution.csv'
     header = 'LambdaWave,SF,ACC,Contrast'
     all_results = []
+    tb_writer = args.tb_writers['test']
     for i in range(len(csf_flags)):
         low = min_low
         high = max_high
         mid = mid_start
         j = 0
         while csf_flags[i] is not None:
+            tb_writer.add_scalar("{}".format('low'), low, readable_sfs[i])
+            tb_writer.add_scalar("{}".format('mid'), high, readable_sfs[i])
+            tb_writer.add_scalar("{}".format('high'), mid, readable_sfs[i])
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]],
                 'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
