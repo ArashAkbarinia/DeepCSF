@@ -6,6 +6,7 @@ import os
 import numpy as np
 import time
 import sys
+import ntpath
 
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
+from tensorboardX import SummaryWriter
 
 from .datasets import dataloader
 from .models import model_csf, model_utils
@@ -80,6 +82,10 @@ def _main_worker(args):
         momentum=args.momentum, weight_decay=args.weight_decay
     )
 
+    args.tb_writers = {}
+    for mode in ["train", "val"]:
+        args.tb_writers[mode] = SummaryWriter(os.path.join(args.output_dir, mode))
+
     model_progress = []
     model_progress_path = os.path.join(args.output_dir, 'model_progress.csv')
 
@@ -88,11 +94,7 @@ def _main_worker(args):
     if args.resume is not None:
         if os.path.isfile(args.resume):
             checkpoint = torch.load(args.resume, map_location='cpu')
-            print(
-                "=> loaded checkpoint '{}' (epoch {})".format(
-                    args.resume, checkpoint['epoch']
-                )
-            )
+            print("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
 
             args.initial_epoch = checkpoint['epoch'] + 1
             best_acc1 = checkpoint['best_acc1']
@@ -218,9 +220,11 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     if is_train:
         model.train()
         num_samples = args.train_samples
+        tb_writer = args.tb_writers['train']
     else:
         model.eval()
         num_samples = args.val_samples
+        tb_writer = args.tb_writers['val']
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
@@ -233,11 +237,20 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 img0 = img0.cuda(args.gpu, non_blocking=True)
                 output = model(img0)
             else:
-                img0, img1, target, _ = data
+                img0, img1, target, img_path = data
                 img0 = img0.cuda(args.gpu, non_blocking=True)
                 img1 = img1.cuda(args.gpu, non_blocking=True)
                 # compute output
                 output = model(img0, img1)
+
+                if i == 0:
+                    for j in range(min(16, img0.shape[0])):
+                        img_disp = torch.cat([img0[j], img1[j]], dim=2)
+                        img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
+                        img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
+                        tb_writer.add_image(
+                            "{}_{}/{}".format(ntpath.basename(img_path), i, j), img_inv, epoch
+                        )
 
             target = target.cuda(args.gpu, non_blocking=True)
             loss = criterion(output, target)
@@ -274,4 +287,10 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
         if not is_train:
             # printing the accuracy of the epoch
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
+
+    # writing to tensorboard
+    tb_writer.add_scalar("{}".format('loss'), losses.avg, epoch)
+    tb_writer.add_scalar("{}".format('top1'), top1.avg, epoch)
+    tb_writer.add_scalar("{}".format('time'), batch_time.avg, epoch)
+
     return [epoch, batch_time.avg, losses.avg, top1.avg]
