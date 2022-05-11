@@ -83,9 +83,7 @@ def _main_worker(args):
         momentum=args.momentum, weight_decay=args.weight_decay
     )
 
-    args.tb_writers = {}
-    for mode in ["train", "val"]:
-        args.tb_writers[mode] = SummaryWriter(os.path.join(args.output_dir, mode))
+    args.tb_writer = SummaryWriter(os.path.join(args.output_dir, 'train'))
 
     model_progress = []
     model_progress_path = os.path.join(args.output_dir, 'model_progress.csv')
@@ -218,17 +216,15 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
 
     is_train = optimizer is not None
 
+    tb_writer = args.tb_writer
     if is_train:
         model.train()
         num_samples = args.train_samples
-        tb_writer = args.tb_writers['train']
+        epoch_type = 'train'
     else:
         model.eval()
         num_samples = args.val_samples
-        if epoch == -1:
-            tb_writer = args.tb_writers['test']
-        else:
-            tb_writer = args.tb_writers['val']
+        epoch_type = 'test' if epoch == -1 else 'val'
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
@@ -251,8 +247,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
-                        img_name = ntpath.basename(img_path[j])
-                        tb_writer.add_image("{}_{}/{}".format(img_name, i, j), img_inv[j], epoch)
+                        img_name = ntpath.basename(img_path[j])[:-4]
+                        tb_writer.add_image("{}_{}".format(epoch_type, img_name), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)
             loss = criterion(output, target)
@@ -291,8 +287,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
     # writing to tensorboard
-    tb_writer.add_scalar("{}".format('loss'), losses.avg, epoch)
-    tb_writer.add_scalar("{}".format('top1'), top1.avg, epoch)
-    tb_writer.add_scalar("{}".format('time'), batch_time.avg, epoch)
+    tb_writer.add_scalar("{}_{}".format(epoch_type, 'loss'), losses.avg, epoch)
+    tb_writer.add_scalar("{}_{}".format(epoch_type, 'top1'), top1.avg, epoch)
+    tb_writer.add_scalar("{}_{}".format(epoch_type, 'time'), batch_time.avg, epoch)
 
     return [epoch, batch_time.avg, losses.avg, top1.avg]
