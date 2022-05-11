@@ -224,7 +224,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     else:
         model.eval()
         num_samples = args.val_samples
-        epoch_type = 'test' if epoch == -1 else 'val'
+        epoch_type = 'test' if epoch < 0 else 'val'
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
@@ -243,12 +243,12 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 # compute output
                 output = model(img0, img1)
 
-                if i == 0:
+                if i == 0 and epoch >= -1:
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
                         if epoch_type == 'test':
-                            img_name = '%.3d_%.3d' % (i, j)
+                            img_name = '%.4f_%.4f_%.2d%.2d' % (img_path[j][0], img_path[j][1], i, j)
                         else:
                             img_name = ntpath.basename(img_path[j])[:-4]
                         tb_writer.add_image("{}_{}".format(epoch_type, img_name), img_inv[j], epoch)

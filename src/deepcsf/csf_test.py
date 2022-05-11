@@ -189,7 +189,7 @@ def main(argv):
                 db, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=True
             )
 
-            epoch_out = _train_val(db_loader, model, criterion, None, -1, args)
+            epoch_out = _train_val(db_loader, model, criterion, None, -1 - j, args)
             accuracy = epoch_out[3] / 100
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
