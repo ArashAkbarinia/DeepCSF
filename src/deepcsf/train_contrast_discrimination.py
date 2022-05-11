@@ -252,9 +252,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
                     for j in range(min(16, img0.shape[0])):
-                        tb_writer.add_image(
-                            "{}_{}/{}".format(ntpath.basename(img_path), i, j), img_inv[j], epoch
-                        )
+                        img_name = ntpath.basename(img_path[j])
+                        tb_writer.add_image("{}_{}/{}".format(img_name, i, j), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)
             loss = criterion(output, target)
