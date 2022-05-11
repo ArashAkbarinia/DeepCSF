@@ -248,7 +248,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 output = model(img0, img1)
 
                 if i == 0:
-                    img_disp = torch.cat([img0, img1], dim=2)
+                    img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
                         img_name = ntpath.basename(img_path[j])
