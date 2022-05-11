@@ -247,7 +247,10 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
-                        img_name = ntpath.basename(img_path[j])[:-4]
+                        if epoch_type == 'test':
+                            img_name = '%.3d_%.3d' % (i, j)
+                        else:
+                            img_name = ntpath.basename(img_path[j])[:-4]
                         tb_writer.add_image("{}_{}".format(epoch_type, img_name), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)
