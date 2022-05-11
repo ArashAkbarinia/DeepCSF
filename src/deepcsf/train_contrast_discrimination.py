@@ -250,7 +250,6 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 if i == 0:
                     img_disp = torch.cat([img0, img1], dim=2)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
-                    img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
                     for j in range(min(16, img0.shape[0])):
                         img_name = ntpath.basename(img_path[j])
                         tb_writer.add_image("{}_{}/{}".format(img_name, i, j), img_inv[j], epoch)
