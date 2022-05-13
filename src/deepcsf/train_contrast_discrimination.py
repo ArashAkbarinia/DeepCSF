@@ -7,6 +7,7 @@ import numpy as np
 import time
 import sys
 import ntpath
+import collections
 
 import torch
 import torch.nn as nn
@@ -191,7 +192,7 @@ def _main_worker(args):
                 'arch': args.architecture,
                 'transfer_weights': args.transfer_weights,
                 'preprocessing': {'mean': args.mean, 'std': args.std},
-                'state_dict': model.state_dict(),
+                'state_dict': _extract_fc_state_dict(model.state_dict()),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
                 'target_size': args.target_size,
@@ -200,6 +201,13 @@ def _main_worker(args):
         )
         header = 'epoch,t_time,t_loss,t_top1,v_time,v_loss,v_top1'
         np.savetxt(model_progress_path, np.array(model_progress), delimiter=',', header=header)
+
+
+def _extract_fc_state_dict(state_dict):
+    fc_state_dict = collections.OrderedDict()
+    for key in ['fc.weight', 'fc.bias']:
+        fc_state_dict[key] = state_dict[key]
+    return fc_state_dict
 
 
 def _adjust_learning_rate(optimizer, epoch, args):

@@ -138,10 +138,10 @@ def main(argv):
 
     # creating the model, args.architecture should be a path
     if args.grating_detector:
-        model = model_csf.GratingDetector(args.architecture, target_size)
+        model = model_csf.load_grating_detector(args.architecture, target_size)
         test_ps = [0.0]
     else:
-        model = model_csf.ContrastDiscrimination(args.architecture, target_size)
+        model = model_csf.load_contrast_discrimination(args.architecture, target_size)
         test_ps = [0.0, 1.0]
     model = lesion_utils.lesion_kernels(
         model, args.lesion_kernels, args.lesion_planes, args.lesion_lines

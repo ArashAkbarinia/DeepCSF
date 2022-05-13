@@ -9,19 +9,31 @@ import torch.nn as nn
 from . import pretrained_models
 
 
-class ContrastDiscrimination(nn.Module):
-    def __init__(self, architecture, target_size, transfer_weights=None):
-        super(ContrastDiscrimination, self).__init__()
+def _load_csf_model(weights, target_size, net_type):
+    print('Loading CSF test model from %s!' % weights)
+    checkpoint = torch.load(weights, map_location='cpu')
+    architecture = checkpoint['arch']
+    transfer_weights = checkpoint['transfer_weights']
+
+    net_class = ContrastDiscrimination if net_type == 'ContrastDiscrimination' else GratingDetector
+    model = net_class(architecture, target_size, transfer_weights)
+    model.load_state_dict(checkpoint['state_dict'], strict=False)
+    return model
+
+
+def load_contrast_discrimination(weights, target_size):
+    return _load_csf_model(weights, target_size, 'ContrastDiscrimination')
+
+
+def load_grating_detector(weights, target_size):
+    return _load_csf_model(weights, target_size, 'GratingDetector')
+
+
+class CSFNetwork(nn.Module):
+    def __init__(self, architecture, target_size, transfer_weights, scale_factor):
+        super(CSFNetwork, self).__init__()
 
         num_classes = 2
-
-        checkpoint = None
-        # assuming architecture is path
-        if transfer_weights is None:
-            print('Loading model from %s!' % architecture)
-            checkpoint = torch.load(architecture, map_location='cpu')
-            architecture = checkpoint['arch']
-            transfer_weights = checkpoint['transfer_weights']
 
         model = pretrained_models.get_pretrained_model(architecture, transfer_weights)
         if '_scratch' in architecture:
@@ -43,11 +55,13 @@ class ContrastDiscrimination(nn.Module):
         self.features = features
 
         # the numbers for fc layers are hard-coded according to 256 size.
-        scale_factor = (target_size / 256)
+        scale_factor = (target_size / 256) * scale_factor
         self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
-        if checkpoint is not None:
-            self.load_state_dict(checkpoint['state_dict'])
+
+class ContrastDiscrimination(CSFNetwork):
+    def __init__(self, architecture, target_size, transfer_weights):
+        super(ContrastDiscrimination, self).__init__(architecture, target_size, transfer_weights, 1)
 
     def forward(self, x0, x1):
         x0 = self.features(x0)
@@ -59,46 +73,9 @@ class ContrastDiscrimination(nn.Module):
         return x
 
 
-class GratingDetector(nn.Module):
-    def __init__(self, architecture, target_size, transfer_weights=None):
-        super(GratingDetector, self).__init__()
-
-        num_classes = 2
-
-        checkpoint = None
-        # assuming architecture is path
-        if transfer_weights is None:
-            print('Loading model from %s!' % architecture)
-            checkpoint = torch.load(architecture, map_location='cpu')
-            architecture = checkpoint['arch']
-            transfer_weights = checkpoint['transfer_weights']
-
-        model = pretrained_models.get_pretrained_model(architecture, transfer_weights)
-        if '_scratch' in architecture:
-            architecture = architecture.replace('_scratch', '')
-        model = pretrained_models.get_backbone(architecture, model)
-
-        layer = -1
-        if len(transfer_weights) >= 2:
-            layer = transfer_weights[1]
-
-        if (
-                'deeplabv3_' in architecture or 'fcn_' in architecture or 'deeplab' in architecture
-                or 'resnet' in architecture or 'resnext' in architecture
-                or 'taskonomy_' in architecture
-        ):
-            features, org_classes = pretrained_models._resnet_features(model, architecture, layer)
-        else:
-            sys.exit('Unsupported network %s' % architecture)
-        self.features = features
-
-        # the numbers for fc layers are hard-coded according to 256 size.
-        # 0.5 because only one image
-        scale_factor = (target_size / 256) * 0.5
-        self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
-
-        if checkpoint is not None:
-            self.load_state_dict(checkpoint['state_dict'])
+class GratingDetector(CSFNetwork):
+    def __init__(self, architecture, target_size, transfer_weights):
+        super(GratingDetector, self).__init__(architecture, target_size, transfer_weights, 0.5)
 
     def forward(self, x):
         x = self.features(x)
