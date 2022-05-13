@@ -98,7 +98,7 @@ def _main_worker(args):
 
             args.initial_epoch = checkpoint['epoch'] + 1
             best_acc1 = checkpoint['best_acc1']
-            model.load_state_dict(checkpoint['state_dict'])
+            model.load_state_dict(checkpoint['state_dict'], strict=False)
             best_acc1 = best_acc1.to(args.gpu)
             model = model.cuda(args.gpu)
 
