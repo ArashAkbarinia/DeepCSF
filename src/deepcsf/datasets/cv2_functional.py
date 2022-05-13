@@ -6,12 +6,18 @@ from __future__ import division
 
 import numpy as np
 import numbers
+import sys
 import collections
 import warnings
 
 import torch
 
 import cv2
+
+if sys.version_info < (3, 3):
+    Iterable = collections.Iterable
+else:
+    Iterable = collections.abc.Iterable
 
 INTER_MODE = {
     'NEAREST': cv2.INTER_NEAREST, 'BILINEAR': cv2.INTER_LINEAR,
@@ -119,7 +125,7 @@ def resize(img, size, interpolation='BILINEAR'):
     if not _is_numpy_image(img):
         raise TypeError('img should be CV Image. Got {}'.format(type(img)))
     if not (isinstance(size, int) or (
-            isinstance(size, collections.Iterable) and len(size) == 2)):
+            isinstance(size, Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
 
     if isinstance(size, int):
