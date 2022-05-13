@@ -74,10 +74,11 @@ class LayerActivation(nn.Module):
 def resnet_features(model, network_name, layer, target_size):
     if 224 % target_size == 0:
         scale_factor = target_size / 224
-        return _resnet_features_224(model, network_name, layer), scale_factor
+        features, org_classes = _resnet_features_224(model, network_name, layer)
     elif 256 % target_size == 0:
         scale_factor = target_size / 256
-        return _resnet_features_256(model, network_name, layer), scale_factor
+        features, org_classes = _resnet_features_256(model, network_name, layer)
+    return features, org_classes, scale_factor
 
 
 def _resnet_features_224(model, network_name, layer):
