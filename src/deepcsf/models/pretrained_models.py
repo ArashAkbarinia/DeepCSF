@@ -71,51 +71,119 @@ class LayerActivation(nn.Module):
         return x
 
 
-def _resnet_features(model, network_name, layer):
+def resnet_features(model, network_name, layer, target_size):
+    if 224 % target_size == 0:
+        scale_factor = target_size / 224
+        return _resnet_features_224(model, network_name, layer), scale_factor
+    elif 256 % target_size == 0:
+        scale_factor = target_size / 256
+        return _resnet_features_256(model, network_name, layer), scale_factor
+
+
+def _resnet_features_224(model, network_name, layer):
     if type(layer) is str:
         if layer == 'area0':
             layer = 4
             if network_name in ['resnet18', 'resnet34']:
-                org_classes = 524288
+                org_classes = 200704
             elif 'taskonomy_' in network_name:
-                org_classes = 492032
+                org_classes = 186624
             else:
-                org_classes = 524288
+                org_classes = 200704
         elif layer == 'area1':
             layer = 5
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 524288
+                org_classes = 200704
             elif 'taskonomy_' in network_name:
-                org_classes = 492032
+                org_classes = 186624
             else:
-                org_classes = 2097152
+                org_classes = 802816
         elif layer == 'area2':
             layer = 6
             if 'taskonomy_' in network_name or network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 262144
+                org_classes = 100352
             else:
-                org_classes = 1048576
+                org_classes = 401408
         elif layer == 'area3':
             layer = 7
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 131072
+                org_classes = 50176
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
-                org_classes = 2097152
+                org_classes = 802816
             else:
-                org_classes = 524288
+                org_classes = 200704
         elif layer == 'area4':
             layer = 8
+            if network_name in [
+                'resnet18', 'resnet34', 'resnet_basic_custom',
+                'resnet18_custom', 'deeplabv3_resnet18_custom'
+            ]:
+                org_classes = 25088
+            elif 'custom' not in network_name and (
+                    'deeplabv3_' in network_name or 'fcn_' in network_name
+            ):
+                org_classes = 1605632
+            elif 'taskonomy_' in network_name:
+                org_classes = 401408
+            else:
+                org_classes = 100352
+        elif layer == 'fc':
+            # FIXME
+            org_classes = 1000
+            return model, org_classes
+        elif layer == 'encoder':
+            if 'taskonomy_' in network_name:
+                layer = len(list(model.children()))
+                org_classes = 8 * 14 * 14
+        else:
+            sys.exit('Unsupported layer %s' % layer)
+    features = nn.Sequential(*list(model.children())[:layer])
+    return features, org_classes
+
+
+def _resnet_features_256(model, network_name, layer):
+    if type(layer) is str:
+        if layer == 'area0':
+            layer = 4
+            if network_name in ['resnet18', 'resnet34']:
+                org_classes = 262144
+            elif 'taskonomy_' in network_name:
+                org_classes = 246016
+            else:
+                org_classes = 262144
+        elif layer == 'area1':
+            layer = 5
+            if network_name in [
+                'resnet18', 'resnet34', 'resnet_basic_custom',
+                'resnet18_custom', 'deeplabv3_resnet18_custom'
+            ]:
+                org_classes = 262144
+            elif 'taskonomy_' in network_name:
+                org_classes = 246016
+            else:
+                org_classes = 1048576
+        elif layer == 'area2':
+            layer = 6
+            if 'taskonomy_' in network_name or network_name in [
+                'resnet18', 'resnet34', 'resnet_basic_custom',
+                'resnet18_custom', 'deeplabv3_resnet18_custom'
+            ]:
+                org_classes = 131072
+            else:
+                org_classes = 524288
+        elif layer == 'area3':
+            layer = 7
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
@@ -124,15 +192,28 @@ def _resnet_features(model, network_name, layer):
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
-                org_classes = 4194304
-            elif 'taskonomy_' in network_name:
                 org_classes = 1048576
             else:
                 org_classes = 262144
+        elif layer == 'area4':
+            layer = 8
+            if network_name in [
+                'resnet18', 'resnet34', 'resnet_basic_custom',
+                'resnet18_custom', 'deeplabv3_resnet18_custom'
+            ]:
+                org_classes = 32768
+            elif 'custom' not in network_name and (
+                    'deeplabv3_' in network_name or 'fcn_' in network_name
+            ):
+                org_classes = 2097152
+            elif 'taskonomy_' in network_name:
+                org_classes = 524288
+            else:
+                org_classes = 131072
         elif layer == 'encoder':
             if 'taskonomy_' in network_name:
                 layer = len(list(model.children()))
-                org_classes = 8 * 16 * 16 * 2
+                org_classes = 8 * 16 * 16
         else:
             sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])

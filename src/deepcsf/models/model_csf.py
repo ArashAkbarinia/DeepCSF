@@ -49,13 +49,15 @@ class CSFNetwork(nn.Module):
                 or 'resnet' in architecture or 'resnext' in architecture
                 or 'taskonomy_' in architecture
         ):
-            features, org_classes = pretrained_models._resnet_features(model, architecture, layer)
+            features, org_classes, scale_factor = pretrained_models.resnet_features(
+                model, architecture, layer, target_size
+            )
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
         # the numbers for fc layers are hard-coded according to 256 size.
-        scale_factor = (target_size / 256) * scale_factor
+        scale_factor = num_classes * scale_factor
         self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
 
