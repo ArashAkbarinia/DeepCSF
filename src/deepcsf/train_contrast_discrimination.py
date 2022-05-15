@@ -227,7 +227,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     is_train = optimizer is not None
 
     if is_train:
-        model.train()
+        # TODO: only supporting non_scratch models
+        model.eval()
         num_samples = args.train_samples
         epoch_type = 'train'
     else:
