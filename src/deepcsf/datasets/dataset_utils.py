@@ -207,7 +207,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
 
     # multiplying by the illuminant
     if illuminant_range is None:
-        illuminant_range = [1e-4, 1.0]
+        max_diff = (1 - max(contrast0, contrast1)) / 2
+        illuminant_range = [-max_diff, max_diff]
     if type(illuminant_range) in (list, tuple):
         if len(illuminant_range) == 1:
             ill_val = illuminant_range[0]
@@ -215,10 +216,10 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
     else:
         ill_val = illuminant_range
-    # we simulate the illumination with multiplication
+    # we simulate the illumination with addition
     # is ill_val is very small, the image becomes very dark
-    img0 *= ill_val
-    img1 *= ill_val
+    img0 += ill_val
+    img1 += ill_val
     half_ill = ill_val / 2
 
     if mask_image == 'gaussian':
@@ -350,16 +351,20 @@ class ShapeDataset(torch_data.Dataset):
     def _prepare_out_imgs(self, bw_img, target_colour, place_fun):
         mask = cv2.resize(bw_img, self.mask_size, interpolation=cv2.INTER_NEAREST)
         current_colour = target_colour
-        if os.path.exists(self.bg):
+        if self.bg == 'rnd_uniform':
+            bg = np.random.randint(0, 256)
+            mask_img = np.zeros((*self.mask_size, 3), dtype='uint8') + bg
+            img = np.zeros((*self.target_size, 3), dtype='uint8') + bg
+        elif isinstance(self.bg, int) or self.bg.isdigit():
+            mask_img = np.zeros((*self.mask_size, 3), dtype='uint8') + int(self.bg)
+            img = np.zeros((*self.target_size, 3), dtype='uint8') + int(self.bg)
+        elif os.path.exists(self.bg):
             bg_img = io.imread(self.bg)
             mask_img = cv2.resize(bg_img, self.mask_size, interpolation=cv2.INTER_NEAREST)
             img = cv2.resize(bg_img, self.target_size, interpolation=cv2.INTER_NEAREST)
         elif self.bg == 'rnd':
             mask_img = np.random.randint(0, 256, (*self.mask_size, 3), dtype='uint8')
             img = np.random.randint(0, 256, (*self.target_size, 3), dtype='uint8')
-        else:
-            mask_img = np.zeros((*self.mask_size, 3), dtype='uint8') + int(self.bg)
-            img = np.zeros((*self.target_size, 3), dtype='uint8') + int(self.bg)
         # converting images to float
         mask_img = mask_img.astype('float32') / 255
         img = img.astype('float32') / 255
