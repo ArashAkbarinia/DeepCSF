@@ -111,8 +111,9 @@ def main(argv):
     colour_space = args.colour_space
     target_size = args.target_size
 
-    system_utils.create_dir(args.output_dir)
-    out_file = '%s/%s_evolution.csv' % (args.output_dir, args.experiment_name)
+    res_out_dir = os.path.join(args.output_dir, 'evals')
+    system_utils.create_dir(res_out_dir)
+    out_file = '%s/%s_evolution.csv' % (res_out_dir, args.experiment_name)
     if os.path.exists(out_file):
         return
 
@@ -172,9 +173,6 @@ def main(argv):
         mid = mid_start
         j = 0
         while csf_flags[i] is not None:
-            tb_writer.add_scalar("{}".format('low'), low, readable_sfs[i])
-            tb_writer.add_scalar("{}".format('mid'), high, readable_sfs[i])
-            tb_writer.add_scalar("{}".format('high'), mid, readable_sfs[i])
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]],
                 'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
@@ -191,6 +189,7 @@ def main(argv):
 
             epoch_out = _train_val(db_loader, model, criterion, None, -1 - j, args)
             accuracy = epoch_out[3] / 100
+            tb_writer.add_scalar("{}_{:03d}".format('mid', readable_sfs[i]), accuracy, csf_flags[i])
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
@@ -202,3 +201,4 @@ def main(argv):
                 csf_flags[i] = new_mid
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
+        tb_writer.add_scalar("{}".format('csf'), 1 / mid, readable_sfs[i])

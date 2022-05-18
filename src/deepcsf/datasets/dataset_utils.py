@@ -640,7 +640,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img0, img1 = self.post_transform([img0, img1])
         img_out, contrast_target = _two_pairs_stimuli(img0, img1, contrast0, contrast1, self.p)
 
-        item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
+        sf_base = ((self.target_size[0] / 2) / np.pi)
+        sf = int(sf_base / lambda_wave)
+        item_settings = np.array([contrast0, sf, np.rad2deg(theta), np.rad2deg(rho), self.p])
 
         if self.grating_detector:
             return img_out[contrast_target], contrast_target, item_settings

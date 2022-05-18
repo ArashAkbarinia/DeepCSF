@@ -259,7 +259,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
                         if epoch_type == 'test':
-                            img_name = '%.4f_%.4f_%.2d%.2d' % (img_path[j][0], img_path[j][1], i, j)
+                            contrast, sf, angle, phase, _ = img_path[j]
+                            img_name = '%.3d_%.3d_%.3d' % (sf, angle, phase)
                         else:
                             img_name = ntpath.basename(img_path[j])[:-4]
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
@@ -301,8 +302,9 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
     # writing to tensorboard
-    tb_writer.add_scalar("{}".format('loss'), losses.avg, epoch)
-    tb_writer.add_scalar("{}".format('top1'), top1.avg, epoch)
-    tb_writer.add_scalar("{}".format('time'), batch_time.avg, epoch)
+    if epoch_type != 'test':
+        tb_writer.add_scalar("{}".format('loss'), losses.avg, epoch)
+        tb_writer.add_scalar("{}".format('top1'), top1.avg, epoch)
+        tb_writer.add_scalar("{}".format('time'), batch_time.avg, epoch)
 
     return [epoch, batch_time.avg, losses.avg, top1.avg]
