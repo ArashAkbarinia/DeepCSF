@@ -196,10 +196,10 @@ def main(argv):
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
             if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
-                tb_writer.add_scalar("{}".format('csf'), 1 / csf_flags[i], readable_sfs[i])
                 csf_flags[i] = None
             else:
                 low, mid, high = new_low, new_mid, new_high
                 csf_flags[i] = new_mid
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
+        tb_writer.add_scalar("{}".format('csf'), 1 / all_results[-1][-1], readable_sfs[i])
