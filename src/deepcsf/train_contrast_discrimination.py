@@ -207,9 +207,9 @@ def _main_worker(args):
 def _extract_altered_state_dict(model):
     altered_state_dict = collections.OrderedDict()
     for key, _ in model.named_buffers():
-        altered_state_dict[key] = model.state_dict[key]
+        altered_state_dict[key] = model.state_dict()[key]
     for key in ['fc.weight', 'fc.bias']:
-        altered_state_dict[key] = model.state_dict[key]
+        altered_state_dict[key] = model.state_dict()[key]
     return altered_state_dict
 
 
