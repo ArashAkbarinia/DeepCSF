@@ -112,8 +112,8 @@ def main(argv):
     target_size = args.target_size
 
     system_utils.create_dir(args.output_dir)
-    out_file = '%s/%s' % (args.output_dir, args.experiment_name)
-    if os.path.exists(out_file + '.csv'):
+    out_file = '%s/%s_evolution.csv' % (args.output_dir, args.experiment_name)
+    if os.path.exists(out_file):
         return
 
     args.tb_writers = {'test': SummaryWriter(os.path.join(args.output_dir, 'test'))}
@@ -163,7 +163,6 @@ def main(argv):
     }
     criterion = nn.CrossEntropyLoss().cuda()
 
-    out_file = out_file + '_evolution.csv'
     header = 'LambdaWave,SF,ACC,Contrast'
     all_results = []
     tb_writer = args.tb_writers['test']

@@ -174,8 +174,9 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             [img1] = pre_transform([img1])
 
     if contrasts is None:
-        contrast0 = random.uniform(0, 1)
-        contrast1 = random.uniform(0, 1)
+        min_contrast = 0.004
+        contrast0 = random.uniform(min_contrast, 1)
+        contrast1 = random.uniform(min_contrast, 1)
     else:
         contrast0, contrast1 = contrasts
 
