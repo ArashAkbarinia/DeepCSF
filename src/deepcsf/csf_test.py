@@ -7,7 +7,7 @@ import os
 
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from skimage import io
 
@@ -189,7 +189,8 @@ def main(argv):
 
             epoch_out = _train_val(db_loader, model, criterion, None, -1 - j, args)
             accuracy = epoch_out[3] / 100
-            tb_writer.add_scalar("{}_{:03d}".format('mid', readable_sfs[i]), accuracy, csf_flags[i])
+            contrast = int(csf_flags[i] * 1000)
+            tb_writer.add_scalar("{}_{:03d}".format('psf', readable_sfs[i]), accuracy, contrast)
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
