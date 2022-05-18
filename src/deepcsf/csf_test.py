@@ -202,4 +202,4 @@ def main(argv):
                 csf_flags[i] = new_mid
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
-        tb_writer.add_scalar("{}".format('csf'), 1 / mid, readable_sfs[i])
+        tb_writer.add_scalar("{}".format('csf'), 1 / contrast, readable_sfs[i])
