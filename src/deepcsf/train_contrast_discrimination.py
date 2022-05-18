@@ -193,7 +193,7 @@ def _main_worker(args):
                 'arch': args.architecture,
                 'transfer_weights': args.transfer_weights,
                 'preprocessing': {'mean': args.mean, 'std': args.std},
-                'state_dict': _extract_fc_state_dict(model.state_dict()),
+                'state_dict': _extract_altered_state_dict(model),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
                 'target_size': args.target_size,
@@ -204,11 +204,13 @@ def _main_worker(args):
         np.savetxt(model_progress_path, np.array(model_progress), delimiter=',', header=header)
 
 
-def _extract_fc_state_dict(state_dict):
-    fc_state_dict = collections.OrderedDict()
+def _extract_altered_state_dict(model):
+    altered_state_dict = collections.OrderedDict()
+    for key, _ in model.named_buffers():
+        altered_state_dict[key] = model.state_dict[key]
     for key in ['fc.weight', 'fc.bias']:
-        fc_state_dict[key] = state_dict[key]
-    return fc_state_dict
+        altered_state_dict[key] = model.state_dict[key]
+    return altered_state_dict
 
 
 def _adjust_learning_rate(optimizer, epoch, args):
@@ -226,8 +228,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     is_train = optimizer is not None
 
     if is_train:
-        # TODO: only supporting non_scratch models
-        model.eval()
+        model.train()
         num_samples = args.train_samples
         epoch_type = 'train'
     else:
