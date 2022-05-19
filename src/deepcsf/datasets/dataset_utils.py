@@ -489,6 +489,28 @@ def _random_grating(target_size, contrast0):
     return img0
 
 
+def _convert_other_params(img, theta, rho):
+    if theta == 0:
+        if rho == 180:
+            img = img[:, ::-1]
+    elif theta == 90:
+        img = img.transpose()
+        if rho == 180:
+            img = img[::-1]
+    else:
+        # theta 45
+        unique_vals = np.unique(img.round(decimals=4))
+        vals = [unique_vals[i % len(unique_vals)] for i in range(img.shape[0] * 2 - 1)]
+        if rho == 180:
+            vals = vals[::-1]
+        for i in range(img.shape[0]):
+            for j in range(img.shape[1]):
+                img[i, j] = vals[i + j]
+        if theta == 135:
+            img = img[:, ::-1]
+    return img
+
+
 class GratingImages(AfcDataset, torch_data.Dataset):
     def __init__(self, samples, afc_kwargs, target_size, theta=None, rho=None, lambda_wave=None):
         AfcDataset.__init__(self, **afc_kwargs)
@@ -525,11 +547,11 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
             # randomising the parameters
             if self.theta is None:
-                theta = random.uniform(0, np.pi)
+                theta = random.choice([0, 45, 90, 135])
             else:
                 theta = self.theta
             if self.rho is None:
-                rho = random.uniform(0, np.pi)
+                rho = random.choice([0, 180])
             else:
                 rho = self.rho
             if self.lambda_wave is None:
@@ -544,16 +566,28 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             rho = self.settings['rho'][inds[3]]
             self.p = self.settings['side'][inds[4]]
             contrast1 = 0
-        omega = [np.cos(theta), np.sin(theta)]
 
+        # always create the 0 one then adjust to the others
+        omega = [np.cos(0), np.sin(0)]
         # generating the gratings
         sinusoid_param = {
-            'amp': contrast0, 'omega': omega, 'rho': rho,
+            'amp': contrast0, 'omega': omega, 'rho': 0,
             'img_size': self.target_size, 'lambda_wave': lambda_wave
         }
         img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
         sinusoid_param['amp'] = contrast1
         img1 = stimuli_bank.sinusoid_grating(**sinusoid_param)
+
+        # if target size is even, the generated stimuli is 1 pixel larger.
+        if np.mod(self.target_size[0], 2) == 0:
+            img0 = img0[:-1]
+            img1 = img1[:-1]
+        if np.mod(self.target_size[1], 2) == 0:
+            img0 = img0[:, :-1]
+            img1 = img1[:, :-1]
+
+        img0 = _convert_other_params(img0, theta, rho)
+        img1 = _convert_other_params(img1, theta, rho)
 
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
@@ -588,14 +622,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         # multiplying with the illuminant value
         img0 *= self.illuminant_range
         img1 *= self.illuminant_range
-
-        # if target size is even, the generated stimuli is 1 pixel larger.
-        if np.mod(self.target_size[0], 2) == 0:
-            img0 = img0[:-1]
-            img1 = img1[:-1]
-        if np.mod(self.target_size[1], 2) == 0:
-            img0 = img0[:, :-1]
-            img1 = img1[:, :-1]
 
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
@@ -641,8 +667,10 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         img_out, contrast_target = _two_pairs_stimuli(img0, img1, contrast0, contrast1, self.p)
 
         sf_base = ((self.target_size[0] / 2) / np.pi)
-        sf = int(sf_base / lambda_wave)
-        item_settings = np.array([contrast0, sf, np.rad2deg(theta), np.rad2deg(rho), self.p])
+        sf = int(np.round(sf_base / lambda_wave))
+        angle = np.round(np.rad2deg(theta))
+        phase = np.round(np.rad2deg(rho))
+        item_settings = np.array([contrast0, sf, angle, phase, self.p])
 
         if self.grating_detector:
             return img_out[contrast_target], contrast_target, item_settings

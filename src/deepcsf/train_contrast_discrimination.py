@@ -15,7 +15,7 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from .datasets import dataloader
 from .models import model_csf, model_utils

@@ -134,8 +134,8 @@ def main(argv):
             lambda_waves = np.linspace(freqs[0], freqs[1], int(freqs[2]))
         else:
             lambda_waves = freqs
-    test_thetas = np.linspace(0, np.pi, 7)
-    test_rhos = np.linspace(0, np.pi, 4)
+    test_thetas = [0, 45, 90, 135]
+    test_rhos = [0, 180]
 
     # creating the model, args.architecture should be a path
     if args.grating_detector:
