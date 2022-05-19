@@ -132,8 +132,8 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     illuminant_range=1.0, current_param=None, sf_filter=None,
-                     contrast_space='rgb', grating_detector=False):
+                     illuminant_range=0.0, current_param=None, sf_filter=None,
+                     contrast_space='rgb', grating_detector=False, p_chn_wise=0.5):
     if grating_detector:
         if current_param:
             sys.exit('For grating_detector current_param cant be true')
@@ -200,16 +200,27 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     if contrast_space == 'dkl':
         img0 = colour_spaces.rgb2dkl01(img0)
         img1 = colour_spaces.rgb2dkl01(img1)
-    img0 = imutils.adjust_contrast(img0, contrast0)
-    img1 = imutils.adjust_contrast(img1, contrast1)
+        # probability distribution of which channel is changing
+        p_chns = [0.6, 0.2, 0.2]
+    else:
+        p_chns = [1 / 3] * 3
+    chn_wise = np.random.uniform() < p_chn_wise
+    if chn_wise:
+        chn = np.random.choice([0, 1, 2], p=p_chns)
+        img0[:, :, chn] = imutils.adjust_contrast(img0[:, :, chn], contrast0)
+        img1[:, :, chn] = imutils.adjust_contrast(img1[:, :, chn], contrast1)
+    else:
+        img0 = imutils.adjust_contrast(img0, contrast0)
+        img1 = imutils.adjust_contrast(img1, contrast1)
     if contrast_space == 'dkl':
         img0 = colour_spaces.dkl012rgb01(img0)
         img1 = colour_spaces.dkl012rgb01(img1)
 
     # multiplying by the illuminant
     if illuminant_range is None:
-        max_diff = (1 - max(contrast0, contrast1)) / 2
-        illuminant_range = [-max_diff, max_diff]
+        min_diff = min(img0.min() - 0, img1.min() - 0)
+        max_diff = min(1 - img0.max(), 1 - img1.max())
+        illuminant_range = [-min_diff, max_diff]
     if type(illuminant_range) in (list, tuple):
         if len(illuminant_range) == 1:
             ill_val = illuminant_range[0]
