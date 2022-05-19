@@ -174,6 +174,7 @@ def main(argv):
         high = max_high
         mid = mid_start
         j = 0
+        psf_i = {'acc': [], 'contrast': []}
         while csf_flags[i] is not None:
             test_samples = {
                 'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]],
@@ -192,7 +193,8 @@ def main(argv):
             epoch_out = _train_val(db_loader, model, criterion, None, -1 - j, args)
             accuracy = epoch_out[3] / 100
             contrast = int(csf_flags[i] * 1000)
-            tb_writer.add_scalar("{}_{:03d}".format('psf', readable_sfs[i]), accuracy, contrast)
+            psf_i['acc'].append(accuracy)
+            psf_i['contrast'].append(contrast)
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
             new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
@@ -205,3 +207,11 @@ def main(argv):
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
         tb_writer.add_scalar("{}".format('csf'), 1 / all_results[-1][-1], readable_sfs[i])
+
+        # making the psf
+        psf_i['acc'] = np.array(psf_i['acc'])
+        psf_i['contrast'] = np.array(psf_i['contrast'])
+        for c in np.argsort(psf_i['contrast']):
+            tb_writer.add_scalar(
+                "{}_{:03d}".format('psf', readable_sfs[i]), psf_i['acc'][c], psf_i['contrast'][c]
+            )
