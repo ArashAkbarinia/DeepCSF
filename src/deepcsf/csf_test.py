@@ -104,6 +104,8 @@ def _midpoint_sf(accuracy, low, mid, high, th=0.75):
 
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
+    args.batch_size = 16
+    args.workers = 2
     # NOTE: a hack to handle taskonomy preprocessing
     if 'taskonomy' in args.architecture:
         args.colour_space = 'taskonomy_rgb'
@@ -187,7 +189,8 @@ def main(argv):
             db.contrast_space = args.contrast_space
 
             db_loader = torch.utils.data.DataLoader(
-                db, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=True
+                db, batch_size=args.batch_size, shuffle=False,
+                num_workers=args.workers, pin_memory=True
             )
 
             epoch_out = _train_val(db_loader, model, criterion, None, -1 - j, args)
