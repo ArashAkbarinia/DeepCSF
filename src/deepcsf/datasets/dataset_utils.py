@@ -668,9 +668,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         sf_base = ((self.target_size[0] / 2) / np.pi)
         sf = int(np.round(sf_base / lambda_wave))
-        angle = np.round(np.rad2deg(theta))
-        phase = np.round(np.rad2deg(rho))
-        item_settings = np.array([contrast0, sf, angle, phase, self.p])
+        item_settings = np.array([contrast0, sf, theta, rho, self.p])
 
         if self.grating_detector:
             return img_out[contrast_target], contrast_target, item_settings
