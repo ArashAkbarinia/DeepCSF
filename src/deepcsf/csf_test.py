@@ -117,7 +117,9 @@ def main(argv):
     if os.path.exists(out_file):
         return
 
-    args.tb_writers = {'test': SummaryWriter(os.path.join(args.output_dir, 'test'))}
+    args.tb_writers = {
+        'test': SummaryWriter(os.path.join(args.output_dir, 'test_' + args.experiment_name))
+    }
 
     preprocess = model_utils.get_mean_std(args.colour_space, args.vision_type)
     args.mean, args.std = preprocess
