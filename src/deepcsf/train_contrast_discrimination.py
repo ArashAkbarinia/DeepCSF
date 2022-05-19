@@ -203,6 +203,10 @@ def _main_worker(args):
         header = 'epoch,t_time,t_loss,t_top1,v_time,v_loss,v_top1'
         np.savetxt(model_progress_path, np.array(model_progress), delimiter=',', header=header)
 
+    # closing the tensorboard writers
+    for mode in args.tb_writers.keys():
+        args.tb_writers[mode].close()
+
 
 def _extract_altered_state_dict(model):
     altered_state_dict = collections.OrderedDict()

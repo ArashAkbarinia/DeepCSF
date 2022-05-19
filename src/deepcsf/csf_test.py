@@ -215,3 +215,4 @@ def main(argv):
             tb_writer.add_scalar(
                 "{}_{:03d}".format('psf', readable_sfs[i]), psf_i['acc'][c], psf_i['contrast'][c]
             )
+    tb_writer.close()
