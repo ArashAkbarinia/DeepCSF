@@ -207,7 +207,7 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False,
             ax.set_xscale('log')
             ax.set_yscale(
                 'symlog',
-                **{'linthreshy': 10e-2, 'linscaley': 0.25, 'subsy': [*range(2, 10)]}
+                **{'linthresh': 10e-2, 'linscale': 0.25, 'subs': [*range(2, 10)]}
             )
         if legend:
             ax.legend(loc=legend_loc)
