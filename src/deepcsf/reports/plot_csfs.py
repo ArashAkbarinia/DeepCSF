@@ -2,7 +2,6 @@
 Plotting the output of CSF tests.
 """
 
-import sys
 import numpy as np
 import glob
 import ntpath
@@ -61,12 +60,12 @@ def _chn_plot_params(chn_name):
     return label, kwargs
 
 
-def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False, normalise=True,
+def _plot_chn_csf(chn_summary, chn_name, figwidth=5, log_axis=False, normalise=True,
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
                   legend_loc='lower center', font_size=16):
-    fig = plt.figure(figsize=figsize) if old_fig is None else old_fig
-
     num_tests = len(chn_summary)
+    fig = plt.figure(figsize=(figwidth * num_tests, 4)) if old_fig is None else old_fig
+
     if normalise:
         max_val = max([chn_summary[i]['sens'].max() for i in range(num_tests)])
     for i in range(num_tests):
@@ -86,23 +85,23 @@ def _plot_chn_csf(chn_summary, chn_name, figsize=(22, 4), log_axis=False, normal
         if model_info is not None:
             model_name, plot_model = model_info
             if plot_model:
-                hcsf = np.array([animal_csfs.csf(f, model_name) for f in org_freqs])
-                hcsf /= hcsf.max()
-                hcsf *= np.max(org_yvals)
-                ax.plot(org_freqs, hcsf, '--', color='black', label='human')
+                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name)
+                hcsf_sens /= hcsf_sens.max()
+                hcsf_sens *= np.max(org_yvals)
+                ax.plot(org_freqs, hcsf_sens, '--', color='black', label='human')
 
             # use interpolation for correlation
             # int_freqs = np.array(chn_summary[i][0]['unique_params']['sf_int'])
-            # hcsf = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
-            # hcsf /= hcsf.max()
+            # hcsf_sens = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
+            # hcsf_sens /= hcsf_sens.max()
             #
             # int_yvals = np.array(chn_summary[i][0]['sensitivities']['all_int'])
             # int_yvals /= int_yvals.max()
-            p_corr, r_corr = stats.pearsonr(org_yvals, hcsf)
+            p_corr, r_corr = stats.pearsonr(org_yvals, hcsf_sens)
             if not legend:
                 suffix_label = ''
             elif legend_dis:
-                euc_dis = np.linalg.norm(hcsf - org_yvals)
+                euc_dis = np.linalg.norm(hcsf_sens - org_yvals)
                 suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
             else:
                 suffix_label = ' [r=%.2f]' % p_corr
