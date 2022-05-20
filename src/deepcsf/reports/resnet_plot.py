@@ -78,9 +78,7 @@ def _extract_data(result_mat, target_size):
     unique_params['wave'] = np.unique(result_mat[:, 1])
     # networks see the entire image, this assuming similar to fovea of 2 deg
     # to convert it to one degree, divided by 2
-    unique_params['sf'] = np.array(
-        wave2sf(unique_params['wave'], target_size)
-    ) / 2
+    unique_params['sf'] = np.array(wave2sf(unique_params['wave'], target_size)) / 2
     accuracies = dict()
     contrasts_waves = dict()
 
@@ -93,9 +91,7 @@ def _extract_data(result_mat, target_size):
         'contrasts_waves': contrasts_waves, 'sensitivities': sensitivities
     }
     # interpolating to all points
-    int_xvals, int_yvals = uniform_sfs(
-        unique_params['wave'], sensitivities['all'], target_size
-    )
+    int_xvals, int_yvals = uniform_sfs(unique_params['wave'], sensitivities['all'], target_size)
     unique_params['sf_int'] = np.array(wave2sf(int_xvals, target_size)) / 2
     sensitivities['all_int'] = int_yvals
 

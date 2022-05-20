@@ -11,18 +11,18 @@ def generic_model(f, k1, k2, alpha, beta):
     return the_csf
 
 
-def model_fest():
-    frequency = np.array([1.12, 2, 2.83, 4, 5.66, 8, 11.3, 16, 22.6, 30])
+def model_fest(fs):
+    frequency = np.array([fs[0], 1.12, 2, 2.83, 4, 5.66, 8, 11.3, 16, 22.6, 30, fs[-1]])
     sensitivity = np.array(
-        [1.82095312, 1.9603125, 2.06315625, 2.10648437, 1.99190625,
-         1.84360937, 1.62089063, 1.29775, 0.95945312, 0.56746875]
+        [csf(fs[0], method='uhlrich'), 1.82095312, 1.9603125, 2.06315625, 2.10648437, 1.99190625,
+         1.84360937, 1.62089063, 1.29775, 0.95945312, 0.56746875, csf(fs[-1], method='uhlrich')]
     )
     return frequency, sensitivity
 
 
 def get_csf(frequency, method='model_fest'):
     if method == 'model_fest':
-        freq, sensitivity = model_fest()
+        frequency, sensitivity = model_fest(frequency)
     else:
         sensitivity = [csf(f, method=method) for f in frequency]
     return np.array(frequency), np.array(sensitivity)

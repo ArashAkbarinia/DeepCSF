@@ -88,9 +88,12 @@ def _plot_chn_csf(chn_summary, chn_name, figwidth=5, log_axis=False, normalise=T
                 hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name)
                 hcsf_sens /= hcsf_sens.max()
                 hcsf_sens *= np.max(org_yvals)
-                ax.plot(org_freqs, hcsf_sens, '--', color='black', label='human')
+                ax.plot(hcsf_freq, hcsf_sens, '-x', color='black', label='human')
+                hcsf_inter = np.interp(org_freqs, hcsf_freq, hcsf_sens)
+                ax.plot(org_freqs, hcsf_inter, '--', color='black')
 
             # use interpolation for correlation
+            hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
             # int_freqs = np.array(chn_summary[i][0]['unique_params']['sf_int'])
             # hcsf_sens = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
             # hcsf_sens /= hcsf_sens.max()
