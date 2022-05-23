@@ -242,7 +242,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     tb_writer = args.tb_writers[epoch_type]
 
     end = time.time()
-    epoch_detail = {'lcontrast': [], 'hcontrast': [], 'ill': [], 'chns': []}
+    epoch_detail = {'lcontrast': [], 'hcontrast': [], 'ill': [], 'chn': []}
     with torch.set_grad_enabled(is_train):
         for i, data in enumerate(db_loader):
             # measure data loading time
@@ -261,11 +261,11 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
 
                 if epoch_type == 'train':
                     for iset in img_settings:
-                        _, contrast0, contrast1, ill, chns = iset
+                        contrast0, contrast1, ill, chn = iset
                         epoch_detail['lcontrast'].append(min(contrast0, contrast1))
                         epoch_detail['hcontrast'].append(max(contrast0, contrast1))
                         epoch_detail['ill'].append(ill)
-                        epoch_detail['chns'].append(chns)
+                        epoch_detail['chn'].append(chn)
                 if i == 0 and epoch >= -1:
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
@@ -274,7 +274,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                             contrast, sf, angle, phase, _ = img_settings[j]
                             img_name = '%.3d_%.3d_%.3d' % (sf, angle, phase)
                         else:
-                            img_name = ntpath.basename(img_settings[j][0])[:-4]
+                            img_name = 'img%03d' % j
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)
@@ -314,9 +314,15 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
     if epoch_type == 'train':
+        for key in epoch_detail.keys():
+            epoch_detail[key] = np.array(epoch_detail[key])
         tb_writer.add_histogram("{}".format('low_contrast'), epoch_detail['lcontrast'], epoch)
         tb_writer.add_histogram("{}".format('high_contrast'), epoch_detail['hcontrast'], epoch)
         tb_writer.add_histogram("{}".format('illuminant'), epoch_detail['ill'], epoch)
+        chns_occurance = dict()
+        for chn_ind in [-1, 0, 1, 2]:
+            chns_occurance['%d' % chn_ind] = np.sum(epoch_detail['chn'] == chn_ind)
+        tb_writer.add_scalars("{}".format('chn'), chns_occurance, epoch)
 
     # writing to tensorboard
     if epoch_type != 'test':

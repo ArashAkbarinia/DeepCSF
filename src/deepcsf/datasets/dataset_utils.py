@@ -205,14 +205,12 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     else:
         p_chns = [1 / 3] * 3
     chn_wise = np.random.uniform() < p_chn_wise
-    chns = []
     if chn_wise:
         chn = np.random.choice([0, 1, 2], p=p_chns)
-        chns.append([chn])
         img0[:, :, chn] = imutils.adjust_contrast(img0[:, :, chn], contrast0)
         img1[:, :, chn] = imutils.adjust_contrast(img1[:, :, chn], contrast1)
     else:
-        chns.append([0, 1, 2])
+        chn = -1
         img0 = imutils.adjust_contrast(img0, contrast0)
         img1 = imutils.adjust_contrast(img1, contrast1)
     if contrast_space == 'dkl':
@@ -251,7 +249,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p, contrast_target=contrast_target
     )
-    settings = [contrast0, contrast1, ill_val, chns]
+    settings = np.array([contrast0, contrast1, ill_val, chn])
     return img_out, contrast_target, settings
 
 
@@ -317,7 +315,6 @@ class CelebA(AfcDataset, tdatasets.CelebA):
             grating_detector=self.grating_detector
         )
 
-        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
@@ -351,7 +348,6 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
-        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
@@ -464,7 +460,6 @@ class BinaryShapes(AfcDataset, ShapeTrain):
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
-        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
