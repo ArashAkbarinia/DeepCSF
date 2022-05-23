@@ -205,11 +205,14 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     else:
         p_chns = [1 / 3] * 3
     chn_wise = np.random.uniform() < p_chn_wise
+    chns = []
     if chn_wise:
         chn = np.random.choice([0, 1, 2], p=p_chns)
+        chns.append([chn])
         img0[:, :, chn] = imutils.adjust_contrast(img0[:, :, chn], contrast0)
         img1[:, :, chn] = imutils.adjust_contrast(img1[:, :, chn], contrast1)
     else:
+        chns.append([0, 1, 2])
         img0 = imutils.adjust_contrast(img0, contrast0)
         img1 = imutils.adjust_contrast(img1, contrast1)
     if contrast_space == 'dkl':
@@ -248,7 +251,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p, contrast_target=contrast_target
     )
-    return img_out, contrast_target
+    settings = {'contrast0': contrast0, 'contrast1': contrast1, 'ill': ill_val, 'chns': chns}
+    return img_out, contrast_target, settings
 
 
 def _gauss_img(img_size):
@@ -306,17 +310,18 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         path = os.path.join(self.root, self.base_folder, "img_align_celeba", self.filename[index])
         img0 = self.loader(path)
 
-        img_out, contrast_target = _prepare_stimuli(
+        img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
             self.illuminant_range, sf_filter=self.sf_filter, contrast_space=self.contrast_space,
             grating_detector=self.grating_detector
         )
 
+        img_settings['path'] = path
         if self.grating_detector:
-            return img_out, contrast_target, path
+            return img_out, contrast_target, img_settings
         else:
-            return img_out[0], img_out[1], contrast_target, path
+            return img_out[0], img_out[1], contrast_target, img_settings
 
 
 class ImageFolder(AfcDataset, tdatasets.ImageFolder):
@@ -339,17 +344,18 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
 
         path, class_target = self.samples[index]
         img0 = self.loader(path)
-        img_out, contrast_target = _prepare_stimuli(
+        img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
             self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
+        img_settings['path'] = path
         if self.grating_detector:
-            return img_out, contrast_target, path
+            return img_out, contrast_target, img_settings
         else:
-            return img_out[0], img_out[1], contrast_target, path
+            return img_out[0], img_out[1], contrast_target, img_settings
 
 
 class ShapeDataset(torch_data.Dataset):
@@ -451,17 +457,18 @@ class BinaryShapes(AfcDataset, ShapeTrain):
         target_colour = self._get_target_colour()
         img0 = self._prepare_train_imgs(mask_img, target_colour)
 
-        img_out, contrast_target = _prepare_stimuli(
+        img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
             self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
+        img_settings['path'] = path
         if self.grating_detector:
-            return img_out, contrast_target, path
+            return img_out, contrast_target, img_settings
         else:
-            return img_out[0], img_out[1], contrast_target, path
+            return img_out[0], img_out[1], contrast_target, img_settings
 
 
 def _create_samples(samples):

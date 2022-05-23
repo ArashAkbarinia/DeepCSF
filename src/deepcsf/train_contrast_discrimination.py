@@ -242,6 +242,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     tb_writer = args.tb_writers[epoch_type]
 
     end = time.time()
+    epoch_detail = {'lcontrast': [], 'hcontrast': [], 'ill': [], 'chns': []}
     with torch.set_grad_enabled(is_train):
         for i, data in enumerate(db_loader):
             # measure data loading time
@@ -252,21 +253,27 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 img0 = img0.cuda(args.gpu, non_blocking=True)
                 output = model(img0)
             else:
-                img0, img1, target, img_path = data
+                img0, img1, target, img_settings = data
                 img0 = img0.cuda(args.gpu, non_blocking=True)
                 img1 = img1.cuda(args.gpu, non_blocking=True)
                 # compute output
                 output = model(img0, img1)
 
+                if epoch_type == 'train':
+                    for iset in img_settings:
+                        epoch_detail['lcontrast'].append(min(iset['contrast0'], iset['contrast1']))
+                        epoch_detail['hcontrast'].append(max(iset['contrast0'], iset['contrast1']))
+                        epoch_detail['ill'].append(iset['ill'])
+                        epoch_detail['chns'].append(iset['chns'])
                 if i == 0 and epoch >= -1:
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
                     for j in range(min(16, img0.shape[0])):
                         if epoch_type == 'test':
-                            contrast, sf, angle, phase, _ = img_path[j]
+                            contrast, sf, angle, phase, _ = img_settings[j]
                             img_name = '%.3d_%.3d_%.3d' % (sf, angle, phase)
                         else:
-                            img_name = ntpath.basename(img_path[j])[:-4]
+                            img_name = ntpath.basename(img_settings[j]['path'])[:-4]
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)
@@ -304,6 +311,11 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
         if not is_train:
             # printing the accuracy of the epoch
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
+
+    if epoch_type == 'train':
+        tb_writer.add_histogram("{}".format('low_contrast'), epoch_detail['lcontrast'], epoch)
+        tb_writer.add_histogram("{}".format('high_contrast'), epoch_detail['hcontrast'], epoch)
+        tb_writer.add_histogram("{}".format('illuminant'), epoch_detail['ill'], epoch)
 
     # writing to tensorboard
     if epoch_type != 'test':
