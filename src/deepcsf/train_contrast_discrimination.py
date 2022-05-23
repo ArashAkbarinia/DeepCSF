@@ -261,10 +261,11 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
 
                 if epoch_type == 'train':
                     for iset in img_settings:
-                        epoch_detail['lcontrast'].append(min(iset['contrast0'], iset['contrast1']))
-                        epoch_detail['hcontrast'].append(max(iset['contrast0'], iset['contrast1']))
-                        epoch_detail['ill'].append(iset['ill'])
-                        epoch_detail['chns'].append(iset['chns'])
+                        _, contrast0, contrast1, ill, chns = iset
+                        epoch_detail['lcontrast'].append(min(contrast0, contrast1))
+                        epoch_detail['hcontrast'].append(max(contrast0, contrast1))
+                        epoch_detail['ill'].append(ill)
+                        epoch_detail['chns'].append(chns)
                 if i == 0 and epoch >= -1:
                     img_disp = torch.cat([img0, img1], dim=3)
                     img_inv = report_utils.inv_normalise_tensor(img_disp, args.mean, args.std)
@@ -273,7 +274,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                             contrast, sf, angle, phase, _ = img_settings[j]
                             img_name = '%.3d_%.3d_%.3d' % (sf, angle, phase)
                         else:
-                            img_name = ntpath.basename(img_settings[j]['path'])[:-4]
+                            img_name = ntpath.basename(img_settings[j][0])[:-4]
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
 
             target = target.cuda(args.gpu, non_blocking=True)

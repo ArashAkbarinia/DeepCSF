@@ -251,7 +251,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p, contrast_target=contrast_target
     )
-    settings = {'contrast0': contrast0, 'contrast1': contrast1, 'ill': ill_val, 'chns': chns}
+    settings = [contrast0, contrast1, ill_val, chns]
     return img_out, contrast_target, settings
 
 
@@ -317,7 +317,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
             grating_detector=self.grating_detector
         )
 
-        img_settings['path'] = path
+        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
@@ -351,7 +351,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
-        img_settings['path'] = path
+        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
@@ -464,7 +464,7 @@ class BinaryShapes(AfcDataset, ShapeTrain):
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
-        img_settings['path'] = path
+        img_settings = np.array([path, *img_settings])
         if self.grating_detector:
             return img_out, contrast_target, img_settings
         else:
