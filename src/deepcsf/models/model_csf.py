@@ -34,6 +34,7 @@ class CSFNetwork(nn.Module):
         super(CSFNetwork, self).__init__()
 
         num_classes = 2
+        self.architecture = architecture
 
         model = pretrained_models.get_pretrained_model(architecture, transfer_weights)
         if '_scratch' in architecture:
@@ -64,12 +65,17 @@ class CSFNetwork(nn.Module):
         scale_factor = num_classes * scale_factor
         self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
+    def check_img_type(self, x):
+        return x.type(self.conv1.weight.dtype) if 'clip' in self.architecture else x
+
 
 class ContrastDiscrimination(CSFNetwork):
     def __init__(self, architecture, target_size, transfer_weights):
         super(ContrastDiscrimination, self).__init__(architecture, target_size, transfer_weights, 1)
 
     def forward(self, x0, x1):
+        x0 = self.check_img_type(x0)
+        x1 = self.check_img_type(x1)
         x0 = self.features(x0)
         x0 = x0.view(x0.size(0), -1)
         x1 = self.features(x1)
@@ -84,6 +90,7 @@ class GratingDetector(CSFNetwork):
         super(GratingDetector, self).__init__(architecture, target_size, transfer_weights, 0.5)
 
     def forward(self, x):
+        x = self.check_img_type(x)
         x = self.features(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
