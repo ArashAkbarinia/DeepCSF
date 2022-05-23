@@ -60,14 +60,13 @@ def _chn_plot_params(chn_name):
     return label, kwargs
 
 
-def _plot_chn_csf(chn_summary, chn_name, figwidth=5, log_axis=False, normalise=True,
+def _plot_chn_csf(net_results, chn_name, figwidth=5, log_axis=False, normalise=True,
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
                   legend_loc='lower center', font_size=16):
+    chn_summary = net_results[chn_name]
     num_tests = len(chn_summary)
     fig = plt.figure(figsize=(figwidth * num_tests, 4)) if old_fig is None else old_fig
 
-    if normalise:
-        max_val = max([chn_summary[i]['sens'].max() for i in range(num_tests)])
     for i in range(num_tests):
         # getting the x and y values
         org_yvals = np.array(chn_summary[i]['sens'])
@@ -79,6 +78,7 @@ def _plot_chn_csf(chn_summary, chn_name, figwidth=5, log_axis=False, normalise=T
         label, chn_params = _chn_plot_params(chn_name) if chn_info is None else chn_info
 
         if normalise:
+            max_val = max([np.array(val[i]['sens']).max() for val in net_results.values()])
             org_yvals /= max_val
 
         # first plot the human CSF
@@ -129,9 +129,9 @@ def plot_csf_areas(path, chns=None, **kwargs):
     net_results = _load_network_results(path, chns=chns)
     # net_summary = _extract_network_summary(net_results, target_size)
     net_csf_fig = None
-    for chn_key, chn_val in net_results.items():
+    for chn_key in net_results.keys():
         if net_csf_fig is not None:
             kwargs['old_fig'] = net_csf_fig
             kwargs['model_info'] = None
-        net_csf_fig = _plot_chn_csf(chn_val, chn_key, **kwargs)
+        net_csf_fig = _plot_chn_csf(net_results, chn_key, **kwargs)
     return net_csf_fig
