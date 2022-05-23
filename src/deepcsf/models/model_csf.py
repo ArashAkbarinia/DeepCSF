@@ -66,7 +66,7 @@ class CSFNetwork(nn.Module):
         self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
     def check_img_type(self, x):
-        return x.type(self.conv1.weight.dtype) if 'clip' in self.architecture else x
+        return x.type(self.features.conv1.weight.dtype) if 'clip' in self.architecture else x
 
 
 class ContrastDiscrimination(CSFNetwork):
