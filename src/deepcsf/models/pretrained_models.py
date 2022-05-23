@@ -224,7 +224,7 @@ def _resnet_features_256(model, network_name, layer):
 
 def get_pretrained_model(network_name, transfer_weights):
     if 'clip' in network_name:
-        model, _ = clip.load(network_name)
+        model, _ = clip.load(network_name.replace('clip_', ''))
     elif 'taskonomy_' in network_name:
         # NOTE: always assumed pretrained
         feature_task = network_name.replace('taskonomy_', '')
