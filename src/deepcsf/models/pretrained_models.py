@@ -267,7 +267,7 @@ def get_pretrained_model(network_name, transfer_weights):
 
 def get_backbone(network_name, model):
     if 'clip' in network_name:
-        return model.encode_image
+        return model.visual
     elif 'vqvae' in network_name:
         return model.backbone_encoder.features
     elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
