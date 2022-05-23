@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 from torchvision.models import segmentation
+import clip
 
 from . import model_utils
 from . import vqvae
@@ -222,7 +223,9 @@ def _resnet_features_256(model, network_name, layer):
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if 'taskonomy_' in network_name:
+    if 'clip' in network_name:
+        model, _ = clip.load(network_name)
+    elif 'taskonomy_' in network_name:
         # NOTE: always assumed pretrained
         feature_task = network_name.replace('taskonomy_', '')
         model = taskonomy_network.TaskonomyEncoder()
@@ -263,7 +266,9 @@ def get_pretrained_model(network_name, transfer_weights):
 
 
 def get_backbone(network_name, model):
-    if 'vqvae' in network_name:
+    if 'clip' in network_name:
+        return model.encode_image
+    elif 'vqvae' in network_name:
         return model.backbone_encoder.features
     elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
         return model.backbone

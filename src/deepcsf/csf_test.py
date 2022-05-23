@@ -106,9 +106,6 @@ def main(argv):
     args = argument_handler.test_arg_parser(argv)
     args.batch_size = 16
     args.workers = 2
-    # NOTE: a hack to handle taskonomy preprocessing
-    if 'taskonomy' in args.architecture:
-        args.colour_space = 'taskonomy_rgb'
 
     colour_space = args.colour_space
     target_size = args.target_size

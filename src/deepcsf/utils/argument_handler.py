@@ -42,6 +42,7 @@ def train_arg_parser(argvs, extra_args_fun=None):
         extra_args_fun(parser)
 
     args = parser.parse_args(argvs)
+    args.colour_space = _check_dataset_space(args)
     return args
 
 
@@ -64,7 +65,19 @@ def test_arg_parser(argvs, extra_args_fun=None):
         extra_args_fun(parser)
 
     args = parser.parse_args(argvs)
+    args.colour_space = _check_dataset_space(args)
     return args
+
+
+def _check_dataset_space(args):
+    # NOTE: a hack to handle preprocessing
+    if 'taskonomy' in args.architecture:
+        colour_space = 'taskonomy_rgb'
+    elif 'clip' in args.architecture:
+        colour_space = 'clip_rgb'
+    else:
+        colour_space = args.colour_space
+    return colour_space
 
 
 def activation_arg_parser(argvs, extra_args_fun=None):

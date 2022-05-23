@@ -26,10 +26,6 @@ def main(argv):
     args = argument_handler.train_arg_parser(argv)
     system_utils.set_random_environment(args.random_seed)
 
-    # NOTE: a hack to handle taskonomy preprocessing
-    if 'taskonomy' in args.architecture:
-        args.colour_space = 'taskonomy_rgb'
-
     # it's a binary classification
     args.num_classes = 2
 

@@ -52,6 +52,10 @@ class CSFNetwork(nn.Module):
             features, org_classes, scale_factor = pretrained_models.resnet_features(
                 model, architecture, layer, target_size
             )
+        elif 'clip' in architecture:
+            features = model
+            org_classes = 768
+            scale_factor = 1
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
