@@ -43,7 +43,11 @@ class CSFNetwork(nn.Module):
 
         layer = transfer_weights[1] if len(transfer_weights) >= 2 else -1
 
-        if (
+        if layer == 'fc':
+            features = model
+            org_classes = 1000
+            scale_factor = 1
+        elif (
                 'fcn_' in architecture or 'deeplab' in architecture
                 or 'resnet' in architecture or 'resnext' in architecture
                 or 'taskonomy_' in architecture

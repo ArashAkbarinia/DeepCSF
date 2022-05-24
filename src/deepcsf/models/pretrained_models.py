@@ -73,11 +73,6 @@ class LayerActivation(nn.Module):
 
 
 def resnet_features(model, network_name, layer, target_size):
-    # the classification layer doesn't change with target size
-    if layer == 'fc':
-        org_classes = 1000
-        return model, org_classes, 1
-
     if 224 % target_size == 0:
         scale_factor = target_size / 224
         features, org_classes = _resnet_features_224(model, network_name, layer)
@@ -263,7 +258,7 @@ def get_pretrained_model(network_name, transfer_weights):
             )
     elif '_scratch' in network_name:
         model = model_utils.which_architecture(network_name.replace('_scratch', ''))
-    elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
+    elif 'fcn_' in network_name or 'deeplab' in network_name:
         model = segmentation.__dict__[network_name](pretrained=True)
     else:
         model = model_utils.which_network(transfer_weights[0], 'classification', num_classes=1000)
@@ -275,6 +270,6 @@ def get_backbone(network_name, model):
         return model.visual
     elif 'vqvae' in network_name:
         return model.backbone_encoder.features
-    elif 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
+    elif 'fcn_' in network_name or 'deeplab' in network_name:
         return model.backbone
     return model
