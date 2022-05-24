@@ -73,6 +73,11 @@ class LayerActivation(nn.Module):
 
 
 def resnet_features(model, network_name, layer, target_size):
+    # the classification layer doesn't change with target size
+    if layer == 'fc':
+        org_classes = 1000
+        return model, org_classes, 1
+
     if 224 % target_size == 0:
         scale_factor = target_size / 224
         features, org_classes = _resnet_features_224(model, network_name, layer)
@@ -140,10 +145,6 @@ def _resnet_features_224(model, network_name, layer):
                 org_classes = 401408
             else:
                 org_classes = 100352
-        elif layer == 'fc':
-            # FIXME
-            org_classes = 1000
-            return model, org_classes
         elif layer == 'encoder':
             if 'taskonomy_' in network_name:
                 layer = len(list(model.children()))
