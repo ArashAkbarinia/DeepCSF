@@ -73,15 +73,19 @@ class CSFNetwork(nn.Module):
     def check_img_type(self, x):
         return x.type(self.features.conv1.weight.dtype) if 'clip' in self.architecture else x
 
+    def extract_features(self, x):
+        x = self.features(self.check_img_type(x))
+        return x[0] if 'inception' in self.architecture else x
+
 
 class ContrastDiscrimination(CSFNetwork):
     def __init__(self, architecture, target_size, transfer_weights):
         super(ContrastDiscrimination, self).__init__(architecture, target_size, transfer_weights, 1)
 
     def forward(self, x0, x1):
-        x0 = self.features(self.check_img_type(x0))
+        x0 = self.fextract_features(x0)
         x0 = x0.view(x0.size(0), -1).float()
-        x1 = self.features(self.check_img_type(x1))
+        x0 = self.fextract_features(x1)
         x1 = x1.view(x1.size(0), -1).float()
         x = torch.cat([x0, x1], dim=1)
         x = self.fc(x)
@@ -93,7 +97,7 @@ class GratingDetector(CSFNetwork):
         super(GratingDetector, self).__init__(architecture, target_size, transfer_weights, 0.5)
 
     def forward(self, x):
-        x = self.features(self.check_img_type(x))
+        x = self.fextract_features(x)
         x = x.view(x.size(0), -1).float()
         x = self.fc(x)
         return x
