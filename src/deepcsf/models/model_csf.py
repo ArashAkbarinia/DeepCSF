@@ -75,7 +75,7 @@ class CSFNetwork(nn.Module):
 
     def extract_features(self, x):
         x = self.features(self.check_img_type(x))
-        return x[0] if 'inception' in self.architecture else x
+        return x
 
 
 class ContrastDiscrimination(CSFNetwork):
@@ -85,7 +85,7 @@ class ContrastDiscrimination(CSFNetwork):
     def forward(self, x0, x1):
         x0 = self.extract_features(x0)
         x0 = x0.view(x0.size(0), -1).float()
-        x0 = self.extract_features(x1)
+        x1 = self.extract_features(x1)
         x1 = x1.view(x1.size(0), -1).float()
         x = torch.cat([x0, x1], dim=1)
         x = self.fc(x)

@@ -135,6 +135,8 @@ def which_network_classification(network_name, num_classes):
         model = which_architecture(checkpoint['arch'], customs=customs)
 
         model.load_state_dict(checkpoint['state_dict'])
+    elif 'inception' in network_name:
+        model = pmodels.__dict__[network_name](pretrained=True, aux_logits=False)
     else:
         model = pmodels.__dict__[network_name](pretrained=True)
 
