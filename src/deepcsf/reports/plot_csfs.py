@@ -60,17 +60,40 @@ def _chn_plot_params(chn_name):
     return label, kwargs
 
 
-def _plot_chn_csf(net_results, chn_name, figwidth=5, log_axis=False, normalise=True,
+def _instances_summary(instances, std=True):
+    net_results = dict()
+    for chn, areas in instances[0].items():
+        chn_res = []
+        for i in range(len(areas)):
+            area_results = []
+            for instance in instances:
+                # normalising by the max to compare across instances
+                csf = instance[chn][i]
+                area_results.append(csf['sens'] / np.max(csf['sens']))
+            areas_summary = {
+                'freq': instance[chn][i]['freq'],
+                'sens': np.mean(area_results, axis=0),
+                'name': instance[chn][i]['name'],
+            }
+            if std:
+                areas_summary['std'] = np.std(area_results, axis=0)
+            chn_res.append(areas_summary)
+        net_results[chn] = chn_res
+    return net_results
+
+
+def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise=True,
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
                   legend_loc='lower center', font_size=16):
     chn_summary = net_results[chn_name]
     num_tests = len(chn_summary)
-    fig = plt.figure(figsize=(figwidth * num_tests, 4)) if old_fig is None else old_fig
+    fig = plt.figure(figsize=(figwidth * num_tests, 5)) if old_fig is None else old_fig
 
     for i in range(num_tests):
         # getting the x and y values
         org_yvals = np.array(chn_summary[i]['sens'])
         org_freqs = np.array(chn_summary[i]['freq'])
+        org_error = chn_summary[i]['std'] if 'std' in chn_summary[i] else None
 
         ax = fig.axes[i] if old_fig else fig.add_subplot(1, num_tests, i + 1)
         ax.set_title(chn_summary[i]['name'], **{'size': font_size})
@@ -111,7 +134,11 @@ def _plot_chn_csf(net_results, chn_name, figwidth=5, log_axis=False, normalise=T
         else:
             suffix_label = ''
         chn_label = '%s%s' % (label, suffix_label)
-        ax.plot(org_freqs, org_yvals, label=chn_label, **chn_params)
+        # if standard error exists, plot it
+        if org_error is None:
+            ax.plot(org_freqs, org_yvals, label=chn_label, **chn_params)
+        else:
+            ax.errorbar(org_freqs, org_yvals, org_error, label=chn_label, **chn_params)
 
         ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
         ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
@@ -120,6 +147,8 @@ def _plot_chn_csf(net_results, chn_name, figwidth=5, log_axis=False, normalise=T
             ax.set_yscale(
                 'symlog', **{'linthresh': 10e-2, 'linscale': 0.25, 'subs': [*range(2, 10)]}
             )
+        if normalise:
+            ax.set_ylim([0, 1])
         if legend:
             ax.legend(loc=legend_loc)
     return fig
@@ -127,7 +156,18 @@ def _plot_chn_csf(net_results, chn_name, figwidth=5, log_axis=False, normalise=T
 
 def plot_csf_areas(path, chns=None, **kwargs):
     net_results = _load_network_results(path, chns=chns)
-    # net_summary = _extract_network_summary(net_results, target_size)
+    net_csf_fig = None
+    for chn_key in net_results.keys():
+        if net_csf_fig is not None:
+            kwargs['old_fig'] = net_csf_fig
+            kwargs['model_info'] = None
+        net_csf_fig = _plot_chn_csf(net_results, chn_key, **kwargs)
+    return net_csf_fig
+
+
+def plot_csf_instances(paths, std, area_suf=None, chns=None, **kwargs):
+    instances = [_load_network_results(path, chns=chns, area_suf=area_suf) for path in paths]
+    net_results = _instances_summary(instances, std)
     net_csf_fig = None
     for chn_key in net_results.keys():
         if net_csf_fig is not None:
