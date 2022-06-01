@@ -45,7 +45,7 @@ class CSFNetwork(nn.Module):
 
         if layer == 'fc':
             features = model
-            org_classes = 1000
+            org_classes = model.fc.out_features
             scale_factor = 1
         elif (
                 'fcn_' in architecture or 'deeplab' in architecture
