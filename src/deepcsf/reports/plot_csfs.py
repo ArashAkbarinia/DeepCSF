@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from scipy import stats
 
 from . import animal_csfs
+from ..utils import report_utils
 
 
 def extract_csf(file_path):
@@ -60,6 +61,12 @@ def _chn_plot_params(chn_name):
     return label, kwargs
 
 
+def _minmax_instance_area(instance, area_ind):
+    min_val = min([np.array(val[area_ind]['sens']).min() for val in instance.values()])
+    max_val = max([np.array(val[area_ind]['sens']).max() for val in instance.values()])
+    return min_val, max_val
+
+
 def _instances_summary(instances, std=True):
     net_results = dict()
     for chn, areas in instances[0].items():
@@ -69,7 +76,8 @@ def _instances_summary(instances, std=True):
             for instance in instances:
                 # normalising by the max to compare across instances
                 csf = instance[chn][i]
-                area_results.append(csf['sens'] / np.max(csf['sens']))
+                _, max_val = _minmax_instance_area(instance, i)
+                area_results.append(csf['sens'] / max_val)
             areas_summary = {
                 'freq': instance[chn][i]['freq'],
                 'sens': np.mean(area_results, axis=0),
@@ -82,7 +90,7 @@ def _instances_summary(instances, std=True):
     return net_results
 
 
-def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise=True,
+def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='max',
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
                   legend_loc='lower center', font_size=16):
     chn_summary = net_results[chn_name]
@@ -100,9 +108,12 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise=T
 
         label, chn_params = _chn_plot_params(chn_name) if chn_info is None else chn_info
 
-        if normalise:
-            max_val = max([np.array(val[i]['sens']).max() for val in net_results.values()])
-            org_yvals /= max_val
+        if normalise is not None:
+            min_val, max_val = _minmax_instance_area(net_results, i)
+            if normalise == 'max':
+                org_yvals /= max_val
+            elif normalise == 'min_max':
+                org_yvals = report_utils.min_max_normalise(org_yvals, 0, 1, min_val, max_val)
 
         # first plot the human CSF
         if model_info is not None:
@@ -138,7 +149,7 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise=T
         if org_error is None:
             ax.plot(org_freqs, org_yvals, label=chn_label, **chn_params)
         else:
-            ax.errorbar(org_freqs, org_yvals, org_error, label=chn_label, **chn_params)
+            ax.errorbar(org_freqs, org_yvals, org_error, label=chn_label, capsize=6, **chn_params)
 
         ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
         ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
@@ -147,7 +158,7 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise=T
             ax.set_yscale(
                 'symlog', **{'linthresh': 10e-2, 'linscale': 0.25, 'subs': [*range(2, 10)]}
             )
-        if normalise:
+        if normalise is not None:
             ax.set_ylim([0, 1])
         if legend:
             ax.legend(loc=legend_loc)

@@ -95,3 +95,12 @@ def natural_keys(text, delimiter=None, remove=None):
         return [atoi(c) for c in re.split(r'(\d+)', text)]
     else:
         return [atof(c) for c in text.split(delimiter)]
+
+
+def min_max_normalise(x, low=0, high=1, minv=None, maxv=None):
+    if minv is None:
+        minv = x.min()
+    if maxv is None:
+        maxv = x.max()
+    output = low + (x - minv) * (high - low) / (maxv - minv)
+    return output
