@@ -90,9 +90,9 @@ def _compute_mean(a, b):
     return c
 
 
-def _midpoint_sf(accuracy, low, mid, high, th=0.75):
+def _midpoint_sf(accuracy, low, mid, high, th, ep=1e-4):
     diff_acc = accuracy - th
-    if abs(diff_acc) < 0.005:
+    if abs(diff_acc) < ep:
         return None, None, None
     elif diff_acc > 0:
         new_mid = _compute_mean(low, mid)
@@ -197,7 +197,8 @@ def main(argv):
             psf_i['contrast'].append(contrast)
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
-            new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.75)
+            # th=0.751 because test samples are 16, 12 correct equals 0.75 and test stops
+            new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.751)
             if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
                 csf_flags[i] = None
