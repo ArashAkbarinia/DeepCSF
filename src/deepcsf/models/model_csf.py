@@ -45,7 +45,12 @@ class CSFNetwork(nn.Module):
 
         if layer == 'fc':
             features = model
-            org_classes = model.fc.out_features
+            if hasattr(model, 'fc'):
+                org_classes = model.fc.out_features
+            elif type(model.classifier) is torch.nn.modules.linear.Linear:
+                org_classes = model.classifier.out_features
+            else:
+                org_classes = model.classifier[-1].out_features
             scale_factor = 1
         elif (
                 'fcn_' in architecture or 'deeplab' in architecture
