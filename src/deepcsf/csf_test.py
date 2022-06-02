@@ -197,8 +197,8 @@ def main(argv):
             psf_i['contrast'].append(contrast)
             print(lambda_waves[i], csf_flags[i], accuracy, low, high)
             all_results.append(np.array([lambda_waves[i], readable_sfs[i], accuracy, mid]))
-            # th=0.751 because test samples are 16, 12 correct equals 0.75 and test stops
-            new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.751)
+            # th=0.749 because test samples are 16, 12 correct equals 0.75 and test stops
+            new_low, new_mid, new_high = _midpoint_sf(accuracy, low, mid, high, th=0.749)
             if abs(csf_flags[i] - max_high) < 1e-3 or new_mid == csf_flags[i] or j == 20:
                 print('had to skip', csf_flags[i])
                 csf_flags[i] = None
