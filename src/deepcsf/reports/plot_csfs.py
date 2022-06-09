@@ -15,7 +15,14 @@ from ..utils import report_utils
 def extract_csf(file_path):
     results = np.loadtxt(file_path, delimiter=',')
     frequency = np.unique(results[:, 1])
-    sensitivity = [results[results[:, 1] == f][-1][-1] for f in frequency]
+    sensitivity = []
+    for f in frequency:
+        f_inds = results[:, 1] == f
+        f_results = results[f_inds]
+        # there is a range of contrasts with accuracy=0.75, we take the mean
+        low_sens = f_results[f_results[:, 2] == 0.75][0][-1]
+        high_sens = f_results[-1][-1]
+        sensitivity.append((low_sens + high_sens) / 2)
     return np.array(frequency) / 2, 1 / np.array(sensitivity)
 
 
