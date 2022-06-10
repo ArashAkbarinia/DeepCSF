@@ -325,7 +325,11 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
         all_ys = np.concatenate(np.array(all_ys), axis=0)
         if is_train:
             # currently only supporting svm
-            clf = svm.LinearSVC(max_iter=100000)
+            max_iter = 100000
+            if args.classifier == 'linear_svm':
+                clf = svm.LinearSVC(max_iter=max_iter)
+            elif args.classifier == 'svm':
+                clf = svm.SVC(max_iter=max_iter)
             clf.fit(all_xs, all_ys)
             system_utils.write_pickle('%s/%s.pickle' % (args.output_dir, args.classifier), clf)
         else:

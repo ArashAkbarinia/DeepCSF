@@ -235,6 +235,7 @@ def _add_optimisation_group(parser):
         type=str,
         choices=[
             'nn',
+            'linear_svm',
             'svm',
         ],
         help='Type of the linear classifier (default: nn)'
