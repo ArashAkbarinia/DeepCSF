@@ -150,7 +150,7 @@ def _main_worker(args):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=shuffle,
-        num_workers=args.workers, pin_memory=True, sampler=None
+        num_workers=args.workers, pin_memory=True, sampler=None, drop_last=True
     )
 
     # validation always is random
@@ -164,7 +164,7 @@ def _main_worker(args):
 
     val_loader = torch.utils.data.DataLoader(
         validation_dataset, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
+        num_workers=args.workers, pin_memory=True, drop_last=True
     )
 
     # training on epoch
@@ -192,7 +192,7 @@ def _main_worker(args):
                 'arch': args.architecture,
                 'transfer_weights': args.transfer_weights,
                 'preprocessing': {'mean': args.mean, 'std': args.std},
-                'state_dict': _extract_altered_state_dict(model),
+                'state_dict': _extract_altered_state_dict(model, args.classifier),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict() if args.classifier == 'nn' else [],
                 'target_size': args.target_size,
@@ -247,7 +247,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     all_ys = [] if args.classifier != 'nn' else None
 
     epoch_detail = {'lcontrast': [], 'hcontrast': [], 'ill': [], 'chn': []}
-    with torch.set_grad_enabled(is_train):
+    with torch.set_grad_enabled(is_train and args.classifier == 'nn'):
         for i, data in enumerate(db_loader):
             # measure data loading time
             data_time.update(time.time() - end)
@@ -283,8 +283,8 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
 
             if all_xs is not None:
-                all_xs.append(output.detach().numpy())
-                all_ys.append(target.detach().numpy())
+                all_xs.append(output.detach().cpu().numpy().copy())
+                all_ys.append(target.detach().cpu().numpy().copy())
             else:
                 target = target.cuda(args.gpu, non_blocking=True)
                 loss = criterion(output, target)
@@ -330,7 +330,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
             system_utils.write_pickle('%s/%s.pickle' % (args.output_dir, args.classifier), clf)
         else:
             clf = system_utils.read_pickle('%s/%s.pickle' % (args.output_dir, args.classifier))
-        top1.update(np.mean(clf.predict(all_xs) == all_ys), len(all_xs))
+        top1.update(np.mean(clf.predict(all_xs) == all_ys) * 100, len(all_xs))
 
     if not is_train:
         # printing the accuracy of the epoch
