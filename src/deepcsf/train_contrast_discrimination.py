@@ -66,18 +66,21 @@ def _main_worker(args):
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
-    # if transfer_weights, only train the fc layer, otherwise all parameters
-    if args.transfer_weights is None:
-        params_to_optimize = [{'params': [p for p in model.parameters()]}]
+    if args.classifier == 'nn':
+        # if transfer_weights, only train the fc layer, otherwise all parameters
+        if args.transfer_weights is None:
+            params_to_optimize = [{'params': [p for p in model.parameters()]}]
+        else:
+            for p in model.features.parameters():
+                p.requires_grad = False
+            params_to_optimize = [{'params': [p for p in model.fc.parameters()]}]
+        # optimiser
+        optimizer = torch.optim.SGD(
+            params_to_optimize, lr=args.learning_rate,
+            momentum=args.momentum, weight_decay=args.weight_decay
+        )
     else:
-        for p in model.features.parameters():
-            p.requires_grad = False
-        params_to_optimize = [{'params': [p for p in model.fc.parameters()]}]
-    # optimiser
-    optimizer = torch.optim.SGD(
-        params_to_optimize, lr=args.learning_rate,
-        momentum=args.momentum, weight_decay=args.weight_decay
-    )
+        optimizer = []
 
     args.tb_writers = dict()
     for mode in ['train', 'val']:
@@ -166,7 +169,8 @@ def _main_worker(args):
 
     # training on epoch
     for epoch in range(args.initial_epoch, args.epochs):
-        _adjust_learning_rate(optimizer, epoch, args)
+        if args.classifier == 'nn':
+            _adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
         train_log = _train_val(train_loader, model, criterion, optimizer, epoch, args)
@@ -190,7 +194,7 @@ def _main_worker(args):
                 'preprocessing': {'mean': args.mean, 'std': args.std},
                 'state_dict': _extract_altered_state_dict(model),
                 'best_acc1': best_acc1,
-                'optimizer': optimizer.state_dict(),
+                'optimizer': optimizer.state_dict() if args.classifier == 'nn' else [],
                 'target_size': args.target_size,
             },
             is_best, args
