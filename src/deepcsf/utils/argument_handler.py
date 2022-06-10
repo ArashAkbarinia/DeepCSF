@@ -229,6 +229,16 @@ def _add_optimisation_group(parser):
         type=int,
         help='The initial epoch number (default: 0)'
     )
+    optimisation_group.add_argument(
+        '--classifier',
+        default='nn',
+        type=str,
+        choices=[
+            'nn',
+            'svm',
+        ],
+        help='Type of the linear classifier (default: nn)'
+    )
 
 
 def _add_input_group(parser):

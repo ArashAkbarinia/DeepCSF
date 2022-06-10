@@ -9,31 +9,32 @@ import torch.nn as nn
 from . import pretrained_models
 
 
-def _load_csf_model(weights, target_size, net_type):
+def _load_csf_model(weights, target_size, net_type, classifier):
     print('Loading CSF test model from %s!' % weights)
     checkpoint = torch.load(weights, map_location='cpu')
     architecture = checkpoint['arch']
     transfer_weights = checkpoint['transfer_weights']
 
     net_class = ContrastDiscrimination if net_type == 'ContrastDiscrimination' else GratingDetector
-    model = net_class(architecture, target_size, transfer_weights)
+    model = net_class(architecture, target_size, transfer_weights, classifier)
     model.load_state_dict(checkpoint['state_dict'], strict=False)
     return model
 
 
-def load_contrast_discrimination(weights, target_size):
-    return _load_csf_model(weights, target_size, 'ContrastDiscrimination')
+def load_contrast_discrimination(weights, target_size, classifier):
+    return _load_csf_model(weights, target_size, 'ContrastDiscrimination', classifier)
 
 
-def load_grating_detector(weights, target_size):
-    return _load_csf_model(weights, target_size, 'GratingDetector')
+def load_grating_detector(weights, target_size, classifier):
+    return _load_csf_model(weights, target_size, 'GratingDetector', classifier)
 
 
 class CSFNetwork(nn.Module):
-    def __init__(self, architecture, target_size, transfer_weights, scale_factor):
+    def __init__(self, architecture, target_size, transfer_weights, input_nodes, classifier):
         super(CSFNetwork, self).__init__()
 
         num_classes = 2
+        self.input_nodes = input_nodes
         self.architecture = architecture
 
         model = pretrained_models.get_pretrained_model(architecture, transfer_weights)
@@ -73,9 +74,12 @@ class CSFNetwork(nn.Module):
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
-        # the numbers for fc layers are hard-coded according to 256 size.
-        scale_factor = num_classes * scale_factor
-        self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
+        if classifier == 'nn':
+            # the numbers for fc layers are hard-coded according to 224/256 size for 2 inputs
+            scale_factor = num_classes * scale_factor * (self.input_nodes / 2)
+            self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
+        else:
+            self.fc = None  # e.g. for SVM
 
     def check_img_type(self, x):
         return x.type(self.features.conv1.weight.dtype) if 'clip' in self.architecture else x
@@ -84,10 +88,15 @@ class CSFNetwork(nn.Module):
         x = self.features(self.check_img_type(x))
         return x
 
+    def do_classifier(self, x):
+        return x if self.fc is None else self.fc(x)
+
 
 class ContrastDiscrimination(CSFNetwork):
-    def __init__(self, architecture, target_size, transfer_weights):
-        super(ContrastDiscrimination, self).__init__(architecture, target_size, transfer_weights, 1)
+    def __init__(self, architecture, target_size, transfer_weights, classifier):
+        super(ContrastDiscrimination, self).__init__(
+            architecture, target_size, transfer_weights, 2, classifier
+        )
 
     def forward(self, x0, x1):
         x0 = self.extract_features(x0)
@@ -95,16 +104,16 @@ class ContrastDiscrimination(CSFNetwork):
         x1 = self.extract_features(x1)
         x1 = x1.view(x1.size(0), -1).float()
         x = torch.cat([x0, x1], dim=1)
-        x = self.fc(x)
-        return x
+        return self.do_classifier(x)
 
 
 class GratingDetector(CSFNetwork):
-    def __init__(self, architecture, target_size, transfer_weights):
-        super(GratingDetector, self).__init__(architecture, target_size, transfer_weights, 0.5)
+    def __init__(self, architecture, target_size, transfer_weights, classifier):
+        super(GratingDetector, self).__init__(
+            architecture, target_size, transfer_weights, 1, classifier
+        )
 
     def forward(self, x):
         x = self.extract_features(x)
         x = x.view(x.size(0), -1).float()
-        x = self.fc(x)
-        return x
+        return self.do_classifier(x)

@@ -6,7 +6,6 @@ import os
 import numpy as np
 import time
 import sys
-import ntpath
 import collections
 
 import torch
@@ -16,6 +15,8 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 from torch.utils.tensorboard import SummaryWriter
+
+from sklearn import svm
 
 from .datasets import dataloader
 from .models import model_csf, model_utils
@@ -28,6 +29,10 @@ def main(argv):
 
     # it's a binary classification
     args.num_classes = 2
+
+    if args.classifier != 'nn':
+        args.epochs = 1
+        args.print_freq = np.inf
 
     # preparing the output folder
     layer = args.transfer_weights[1]
@@ -52,14 +57,8 @@ def _main_worker(args):
     args.mean, args.std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
     # create model
-    if args.grating_detector:
-        model = model_csf.GratingDetector(
-            args.architecture, args.target_size, args.transfer_weights,
-        )
-    else:
-        model = model_csf.ContrastDiscrimination(
-            args.architecture, args.target_size, args.transfer_weights,
-        )
+    net_t = model_csf.GratingDetector if args.grating_detector else model_csf.ContrastDiscrimination
+    model = net_t(args.architecture, args.target_size, args.transfer_weights, args.classifier)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
@@ -204,12 +203,13 @@ def _main_worker(args):
         args.tb_writers[mode].close()
 
 
-def _extract_altered_state_dict(model):
+def _extract_altered_state_dict(model, classifier):
     altered_state_dict = collections.OrderedDict()
     for key, _ in model.named_buffers():
         altered_state_dict[key] = model.state_dict()[key]
-    for key in ['fc.weight', 'fc.bias']:
-        altered_state_dict[key] = model.state_dict()[key]
+    if classifier == 'nn':
+        for key in ['fc.weight', 'fc.bias']:
+            altered_state_dict[key] = model.state_dict()[key]
     return altered_state_dict
 
 
@@ -238,6 +238,10 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
     tb_writer = args.tb_writers[epoch_type]
 
     end = time.time()
+
+    all_xs = [] if args.classifier != 'nn' else None
+    all_ys = [] if args.classifier != 'nn' else None
+
     epoch_detail = {'lcontrast': [], 'hcontrast': [], 'ill': [], 'chn': []}
     with torch.set_grad_enabled(is_train):
         for i, data in enumerate(db_loader):
@@ -255,6 +259,7 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 # compute output
                 output = model(img0, img1)
 
+                # FIXME, do this for grating detector as well
                 if epoch_type == 'train':
                     for iset in img_settings:
                         contrast0, contrast1, ill, chn = iset
@@ -273,19 +278,23 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                             img_name = 'img%03d' % j
                         tb_writer.add_image('{}'.format(img_name), img_inv[j], epoch)
 
-            target = target.cuda(args.gpu, non_blocking=True)
-            loss = criterion(output, target)
+            if all_xs is not None:
+                all_xs.append(output.detach().numpy())
+                all_ys.append(target.detach().numpy())
+            else:
+                target = target.cuda(args.gpu, non_blocking=True)
+                loss = criterion(output, target)
 
-            # measure accuracy and record loss
-            acc1 = report_utils.accuracy(output, target)
-            losses.update(loss.item(), img0.size(0))
-            top1.update(acc1[0].cpu().numpy()[0], img0.size(0))
+                # measure accuracy and record loss
+                acc1 = report_utils.accuracy(output, target)
+                losses.update(loss.item(), img0.size(0))
+                top1.update(acc1[0].cpu().numpy()[0], img0.size(0))
 
-            if is_train:
-                # compute gradient and do SGD step
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                if is_train:
+                    # compute gradient and do SGD step
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -305,9 +314,23 @@ def _train_val(db_loader, model, criterion, optimizer, epoch, args):
                 )
             if num_samples is not None and i * len(img0) > num_samples:
                 break
-        if not is_train:
-            # printing the accuracy of the epoch
-            print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
+
+    # the case of non NN classifier
+    if all_xs is not None:
+        all_xs = np.concatenate(np.array(all_xs), axis=0)
+        all_ys = np.concatenate(np.array(all_ys), axis=0)
+        if is_train:
+            # currently only supporting svm
+            clf = svm.LinearSVC(max_iter=100000)
+            clf.fit(all_xs, all_ys)
+            system_utils.write_pickle('%s/%s.pickle' % (args.output_dir, args.classifier), clf)
+        else:
+            clf = system_utils.read_pickle('%s/%s.pickle' % (args.output_dir, args.classifier))
+        top1.update(np.mean(clf.predict(all_xs) == all_ys), len(all_xs))
+
+    if not is_train:
+        # printing the accuracy of the epoch
+        print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
     if epoch_type == 'train':
         for key in epoch_detail.keys():
