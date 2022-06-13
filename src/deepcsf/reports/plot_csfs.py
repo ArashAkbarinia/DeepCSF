@@ -20,8 +20,9 @@ def extract_csf(file_path):
         f_inds = results[:, 1] == f
         f_results = results[f_inds]
         # there is a range of contrasts with accuracy=0.75, we take the mean
-        low_sens = f_results[f_results[:, 2] == 0.75][0][-1]
+        l_inds = f_results[:, 2] == 0.75
         high_sens = f_results[-1][-1]
+        low_sens = f_results[l_inds][0][-1] if np.sum(l_inds) > 0 else high_sens
         sensitivity.append((low_sens + high_sens) / 2)
     return np.array(frequency) / 2, 1 / np.array(sensitivity)
 
