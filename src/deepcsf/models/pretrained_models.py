@@ -72,6 +72,38 @@ class LayerActivation(nn.Module):
         return x
 
 
+def clip_features(model, network_name, layer):
+    if layer == 'encoder':
+        features = model
+        if 'B32' in network_name or 'B16' in network_name or 'RN101' in network_name:
+            org_classes = 512
+        elif 'L14' in network_name or 'RN50x16' in network_name:
+            org_classes = 768
+        elif 'RN50x4' in network_name:
+            org_classes = 640
+        else:
+            org_classes = 1024
+    elif network_name.replace('clip_', '') in ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64']:
+        if layer == 'area0':
+            layer = 8
+            org_classes = 200704
+        elif layer == 'area1':
+            layer = 9
+            org_classes = 802816
+        elif layer == 'area2':
+            layer = 10
+            org_classes = 401408
+        elif layer == 'area3':
+            layer = 11
+            org_classes = 200704
+        elif layer == 'area4':
+            layer = 12
+            org_classes = 100352
+        features = nn.Sequential(*list(model.children())[:layer])
+    scale_factor = 1
+    return features, org_classes, scale_factor
+
+
 def resnet_features(model, network_name, layer, target_size):
     if 224 % target_size == 0:
         scale_factor = target_size / 224

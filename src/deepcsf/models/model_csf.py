@@ -41,6 +41,7 @@ class CSFNetwork(nn.Module):
         if '_scratch' in architecture:
             architecture = architecture.replace('_scratch', '')
         model = pretrained_models.get_backbone(architecture, model)
+        self.in_type = self.set_img_type(model)
 
         layer = transfer_weights[1] if len(transfer_weights) >= 2 else -1
 
@@ -64,16 +65,9 @@ class CSFNetwork(nn.Module):
                 model, architecture, layer, target_size
             )
         elif 'clip' in architecture:
-            features = model
-            if 'B32' in architecture or 'B16' in architecture or 'RN101' in architecture:
-                org_classes = 512
-            elif 'L14' in architecture or 'RN50x16' in architecture:
-                org_classes = 768
-            elif 'RN50x4' in architecture:
-                org_classes = 640
-            else:
-                org_classes = 1024
-            scale_factor = 1
+            features, org_classes, scale_factor = pretrained_models.clip_features(
+                model, architecture, layer
+            )
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
@@ -85,8 +79,11 @@ class CSFNetwork(nn.Module):
         else:
             self.fc = None  # e.g. for SVM
 
+    def set_img_type(self, model):
+        return model.conv1.weight.dtype if 'clip' in self.architecture else torch.float32
+
     def check_img_type(self, x):
-        return x.type(self.features.conv1.weight.dtype) if 'clip' in self.architecture else x
+        return x.type(self.in_type) if 'clip' in self.architecture else x
 
     def extract_features(self, x):
         x = self.features(self.check_img_type(x))
