@@ -65,10 +65,14 @@ class CSFNetwork(nn.Module):
             )
         elif 'clip' in architecture:
             features = model
-            if 'B32' in architecture:
+            if 'B32' in architecture or 'B16' in architecture or 'RN101' in architecture:
                 org_classes = 512
-            elif 'L14' in architecture:
+            elif 'L14' in architecture or 'RN50x16' in architecture:
                 org_classes = 768
+            elif 'RN50x4' in architecture:
+                org_classes = 640
+            else:
+                org_classes = 1024
             scale_factor = 1
         else:
             sys.exit('Unsupported network %s' % architecture)

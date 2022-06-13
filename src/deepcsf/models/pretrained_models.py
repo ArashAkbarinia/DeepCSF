@@ -222,8 +222,12 @@ def get_pretrained_model(network_name, transfer_weights):
     if 'clip' in network_name:
         if 'B32' in network_name:
             clip_version = 'ViT-B/32'
+        elif 'B16' in network_name:
+            clip_version = 'ViT-B/16'
         elif 'L14' in network_name:
             clip_version = 'ViT-L/14'
+        else:
+            clip_version = network_name.replace('clip_', '')
         model, _ = clip.load(clip_version)
     elif 'taskonomy_' in network_name:
         # NOTE: always assumed pretrained
