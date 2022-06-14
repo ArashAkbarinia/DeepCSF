@@ -74,9 +74,25 @@ class LayerActivation(nn.Module):
         return x
 
 
+def vgg_features(model, layer, target_size):
+    if 'feature' in layer:
+        layer = int(layer.replace('feature', '')) + 1
+        features = nn.Sequential(*list(model.features.children())[:layer])
+    elif 'classifier' in layer:
+        layer = int(layer.replace('classifier', '')) + 1
+        features = nn.Sequential(
+            model.features, model.avgpool, nn.Flatten(1), *list(model.classifier.children())[:layer]
+        )
+    else:
+        sys.exit('Unsupported layer %s' % layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
 def generic_features_size(model, target_size):
     img = np.random.randint(0, 256, (target_size, target_size, 3)).astype('float32') / 255
     img = torchvis_fun.to_tensor(img).unsqueeze(0)
+    model.eval()
     with torch.no_grad():
         out = model(img)
     return np.prod(out[0].shape)
@@ -114,22 +130,21 @@ def clip_features(model, network_name, layer):
 
 
 def resnet_features(model, network_name, layer, target_size):
-    if type(layer) is str:
-        if layer == 'area0':
-            layer = 4
-        elif layer == 'area1':
-            layer = 5
-        elif layer == 'area2':
-            layer = 6
-        elif layer == 'area3':
-            layer = 7
-        elif layer == 'area4':
-            layer = 8
-        elif layer == 'encoder':
-            if 'taskonomy_' in network_name:
-                layer = len(list(model.children()))
-        else:
-            sys.exit('Unsupported layer %s' % layer)
+    if layer == 'area0':
+        layer = 4
+    elif layer == 'area1':
+        layer = 5
+    elif layer == 'area2':
+        layer = 6
+    elif layer == 'area3':
+        layer = 7
+    elif layer == 'area4':
+        layer = 8
+    elif layer == 'encoder':
+        if 'taskonomy_' in network_name:
+            layer = len(list(model.children()))
+    else:
+        sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
     org_classes = generic_features_size(features, target_size)
     return features, org_classes
