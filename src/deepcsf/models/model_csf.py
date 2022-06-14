@@ -55,26 +55,22 @@ class CSFNetwork(nn.Module):
                     org_classes = last_layer[-1].out_features
                 else:
                     org_classes = last_layer.out_features
-            scale_factor = 1
         elif (
                 'fcn_' in architecture or 'deeplab' in architecture
                 or 'resnet' in architecture or 'resnext' in architecture
                 or 'taskonomy_' in architecture
         ):
-            features, org_classes, scale_factor = pretrained_models.resnet_features(
+            features, org_classes = pretrained_models.resnet_features(
                 model, architecture, layer, target_size
             )
         elif 'clip' in architecture:
-            features, org_classes, scale_factor = pretrained_models.clip_features(
-                model, architecture, layer
-            )
+            features, org_classes = pretrained_models.clip_features(model, architecture, layer)
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
         if classifier == 'nn':
-            # the numbers for fc layers are hard-coded according to 224/256 size for 2 inputs
-            scale_factor = num_classes * scale_factor * (self.input_nodes / 2)
+            scale_factor = num_classes * (self.input_nodes / 2)
             self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
         else:
             self.fc = None  # e.g. for SVM
