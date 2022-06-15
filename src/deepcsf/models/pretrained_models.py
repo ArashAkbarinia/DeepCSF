@@ -100,7 +100,7 @@ class ViTLayers(nn.Module):
 
 
 def vit_features(model, layer, target_size):
-    encoder_layer = int(layer)
+    encoder_layer = int(layer.replace('encoder', '')) + 1
     features = ViTLayers(model, encoder_layer)
     org_classes = generic_features_size(features, target_size)
     return features, org_classes
