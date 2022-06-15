@@ -65,6 +65,8 @@ class CSFNetwork(nn.Module):
             )
         elif 'vgg' in architecture:
             features, org_classes = pretrained_models.vgg_features(model, layer, target_size)
+        elif 'vit_' in architecture:
+            features, org_classes = pretrained_models.vit_features(model, layer, target_size)
         elif 'clip' in architecture:
             features, org_classes = pretrained_models.clip_features(model, architecture, layer)
         else:

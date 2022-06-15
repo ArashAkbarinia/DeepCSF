@@ -74,6 +74,38 @@ class LayerActivation(nn.Module):
         return x
 
 
+class ViTLayers(nn.Module):
+    def __init__(self, parent_model, encoder_layer):
+        super().__init__()
+        self.parent_model = parent_model
+        encoder_layer = encoder_layer + 1
+        self.parent_model.encoder.layers = self.parent_model.encoder.layers[:encoder_layer]
+        del self.parent_model.heads
+
+    def forward(self, x):
+        # Reshape and permute the input tensor
+        x = self.parent_model._process_input(x)
+        n = x.shape[0]
+
+        # Expand the class token to the full batch
+        batch_class_token = self.parent_model.class_token.expand(n, -1, -1)
+        x = torch.cat([batch_class_token, x], dim=1)
+
+        x = self.parent_model.encoder(x)
+
+        # Classifier "token" as used by standard language architectures
+        x = x[:, 0]
+
+        return x
+
+
+def vit_features(model, layer, target_size):
+    encoder_layer = int(layer)
+    features = ViTLayers(model, encoder_layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
 def vgg_features(model, layer, target_size):
     if 'feature' in layer:
         layer = int(layer.replace('feature', '')) + 1
