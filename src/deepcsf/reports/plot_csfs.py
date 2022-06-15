@@ -36,8 +36,14 @@ def _load_network_results(path, chns=None, area_suf=None):
         if chns is not None and chn_name not in chns:
             continue
         chn_res = []
-        for file_path in sorted(glob.glob('%s/*%s*.csv' % (chns_dir, area_suf)),
-                                key=report_utils.natural_keys):
+        file_paths = sorted(
+            glob.glob('%s/*%s*.csv' % (chns_dir, area_suf)), key=report_utils.natural_keys
+        )
+        # move fc to the last element
+        if '%sfc.csv' % chns_dir in file_paths:
+            file_paths.remove('%sfc.csv' % chns_dir)
+            file_paths.append('%sfc.csv' % chns_dir)
+        for file_path in file_paths:
             area_name = ntpath.basename(file_path)[:-4]
             frequency, sensitivity = extract_csf(file_path)
             chn_res.append({'freq': frequency, 'sens': sensitivity, 'name': area_name})
