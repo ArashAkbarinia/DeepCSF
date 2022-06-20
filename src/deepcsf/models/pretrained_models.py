@@ -161,6 +161,25 @@ def clip_features(model, network_name, layer):
     return features, org_classes
 
 
+def regnet_features(model, layer, target_size):
+    if 'stem' in layer:
+        features = model.stem
+    elif 'block' in layer:
+        if layer == 'block1':
+            layer = 1
+        elif layer == 'block2':
+            layer = 2
+        elif layer == 'block3':
+            layer = 3
+        elif layer == 'block4':
+            layer = 4
+        features = nn.Sequential(model.stem, *list(model.trunk_output.children())[:layer])
+    else:
+        sys.exit('Unsupported layer %s' % layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
 def resnet_features(model, network_name, layer, target_size):
     if layer == 'area0':
         layer = 4

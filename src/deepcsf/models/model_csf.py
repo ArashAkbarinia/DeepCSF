@@ -63,6 +63,8 @@ class CSFNetwork(nn.Module):
             features, org_classes = pretrained_models.resnet_features(
                 model, architecture, layer, target_size
             )
+        elif 'regnet' in architecture:
+            features, org_classes = pretrained_models.regnet_features(model, layer, target_size)
         elif 'vgg' in architecture:
             features, org_classes = pretrained_models.vgg_features(model, layer, target_size)
         elif 'vit_' in architecture:
