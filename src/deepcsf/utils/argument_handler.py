@@ -24,11 +24,11 @@ def train_arg_parser(argvs, extra_args_fun=None):
         help='Path to a predefined set of parameters (default: None)'
     )
     misc_group.add_argument(
-        '--illuminant_range',
+        '--illuminant',
         default=None,
         nargs='+',
         type=float,
-        help='Images are multiplied to a value in this range (default: None)'
+        help='Illuminant value in the range of -0.5 to 0.5 (default: None)'
     )
     misc_group.add_argument(
         '--sf_filter',

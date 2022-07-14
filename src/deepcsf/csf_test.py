@@ -9,62 +9,10 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from skimage import io
-
 from .datasets import dataloader
 from .models import model_csf, model_utils, lesion_utils
-from .utils import report_utils, system_utils, argument_handler
+from .utils import system_utils, argument_handler
 from .train_contrast_discrimination import _train_val
-
-
-def run_gratings_separate(db_loader, model, out_file, print_freq=0, preprocess=None,
-                          old_results=None, grating_detector=False):
-    with torch.no_grad():
-        header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
-        new_results = []
-        num_batches = db_loader.__len__()
-        for i, data in enumerate(db_loader):
-            if grating_detector:
-                timg0, targets, item_settings = data
-                timg0 = timg0.cuda()
-                out = model(timg0)
-            else:
-                timg0, timg1, targets, item_settings = data
-                timg0 = timg0.cuda()
-                timg1 = timg1.cuda()
-                out = model(timg0, timg1)
-            preds = out.cpu().numpy().argmax(axis=1)
-            targets = targets.numpy()
-            item_settings = item_settings.numpy()
-
-            if preprocess is not None:
-                mean, std = preprocess
-                timgs = torch.cat([timg0, timg1], dim=2)
-                img_inv = report_utils.inv_normalise_tensor(timgs, mean, std)
-                img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
-                img_inv = np.concatenate(img_inv, axis=1)
-                save_path = '%s%.5d.png' % (out_file, i)
-                img_inv = np.uint8((img_inv.squeeze() * 255))
-                io.imsave(save_path, img_inv)
-
-            for j in range(len(preds)):
-                current_settings = item_settings[j]
-                params = [*current_settings, preds[j] == targets[j]]
-                new_results.append(params)
-            num_tests = num_batches * timg0.shape[0]
-            test_num = i * timg0.shape[0]
-            percent = float(test_num) / float(num_tests)
-            if print_freq > 0 and (i % print_freq) == 0:
-                print('%.2f [%d/%d]' % (percent, test_num, num_tests))
-
-    save_path = out_file + '.csv'
-    if old_results is not None:
-        all_results = [*old_results, *new_results]
-    else:
-        all_results = new_results
-    all_results = np.array(all_results)
-    np.savetxt(save_path, all_results, delimiter=',', header=header)
-    return np.array(new_results), all_results
 
 
 def sensitivity_sf(result_mat, sf, th=0.75, low=0, high=1):
@@ -86,8 +34,7 @@ def sensitivity_sf(result_mat, sf, th=0.75, low=0, high=1):
 
 
 def _compute_mean(a, b):
-    c = (a + b) / 2
-    return c
+    return (a + b) / 2
 
 
 def _midpoint_sf(accuracy, low, mid, high, th, ep=1e-4):
@@ -122,19 +69,16 @@ def main(argv):
 
     preprocess = model_utils.get_mean_std(args.colour_space, args.vision_type)
     args.mean, args.std = preprocess
-    visualise_preprocess = preprocess if args.visualise else None
 
     # testing setting
     freqs = args.freqs
+    # frequencies should be devisable to image row/column
     if freqs is None:
         sf_base = ((target_size / 2) / np.pi)
         readable_sfs = [i for i in range(1, int(target_size / 2) + 1) if target_size % i == 0]
         lambda_waves = [sf_base / e for e in readable_sfs]
     else:
-        if len(freqs) == 3:
-            lambda_waves = np.linspace(freqs[0], freqs[1], int(freqs[2]))
-        else:
-            lambda_waves = freqs
+        lambda_waves = freqs
     test_thetas = [0, 45, 90, 135]
     test_rhos = [0, 180]
 
@@ -170,6 +114,7 @@ def main(argv):
     header = 'LambdaWave,SF,ACC,Contrast'
     all_results = []
     tb_writer = args.tb_writers['test']
+    illuminant = 0 if args.illuminant is None else args.illuminant[0]
     for i in range(len(csf_flags)):
         low = min_low
         high = max_high
@@ -178,8 +123,8 @@ def main(argv):
         psf_i = {'acc': [], 'contrast': []}
         while csf_flags[i] is not None:
             test_samples = {
-                'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]],
-                'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
+                'amp': [csf_flags[i]], 'lambda_wave': [lambda_waves[i]], 'theta': test_thetas,
+                'rho': test_rhos, 'side': test_ps, 'illuminant': illuminant
             }
 
             db = dataloader.validation_set(
@@ -207,6 +152,12 @@ def main(argv):
             else:
                 low, mid, high = new_low, new_mid, new_high
                 csf_flags[i] = new_mid
+
+                min_diff = csf_flags[i] - 0
+                max_diff = 1 - csf_flags[i]
+                if illuminant < min_diff or illuminant > max_diff:
+                    print('Ill %.3f not possible for contrast %.3f' % (illuminant, csf_flags[i]))
+                    csf_flags[i] = None
             j += 1
         np.savetxt(out_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
         tb_writer.add_scalar("{}".format('csf'), 1 / all_results[-1][-1], readable_sfs[i])

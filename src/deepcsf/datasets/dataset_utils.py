@@ -45,7 +45,7 @@ def _prepare_vision_types(img, colour_space, vision_type):
 
 
 def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_image,
-                              pre_transform, post_transform, p, illuminant_range=1.0,
+                              pre_transform, post_transform, p, illuminant=0.0,
                               sf_filter=None, contrast_space='rgb'):
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
     # converting to range 0 to 1
@@ -105,15 +105,15 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
         img0 = colour_spaces.dkl012rgb01(img0)
 
     # multiplying by the illuminant
-    if illuminant_range is None:
-        illuminant_range = [1e-4, 1.0]
-    if type(illuminant_range) in (list, tuple):
-        if len(illuminant_range) == 1:
-            ill_val = illuminant_range[0]
+    if illuminant is None:
+        illuminant = [1e-4, 1.0]
+    if type(illuminant) in (list, tuple):
+        if len(illuminant) == 1:
+            ill_val = illuminant[0]
         else:
-            ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
+            ill_val = np.random.uniform(low=illuminant[0], high=illuminant[1])
     else:
-        ill_val = illuminant_range
+        ill_val = illuminant
     # we simulate the illumination with multiplication
     # is ill_val is very small, the image becomes very dark
     img0 *= ill_val
@@ -132,14 +132,14 @@ def _prepare_grating_detector(img0, colour_space, vision_type, contrasts, mask_i
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     illuminant_range=0.0, current_param=None, sf_filter=None,
+                     illuminant=0.0, current_param=None, sf_filter=None,
                      contrast_space='rgb', grating_detector=False, p_chn_wise=0.5):
     if grating_detector:
         if current_param:
             sys.exit('For grating_detector current_param cant be true')
         return _prepare_grating_detector(
             img0, colour_space, vision_type, contrasts, mask_image, pre_transform, post_transform,
-            p, illuminant_range, sf_filter, contrast_space
+            p, illuminant, sf_filter, contrast_space
         )
 
     img0 = _prepare_vision_types(img0, colour_space, vision_type)
@@ -217,19 +217,6 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img0 = colour_spaces.dkl012rgb01(img0)
         img1 = colour_spaces.dkl012rgb01(img1)
 
-    # multiplying by the illuminant
-    if illuminant_range is None:
-        min_diff = min(img0.min() - 0, img1.min() - 0)
-        max_diff = min(1 - img0.max(), 1 - img1.max())
-        illuminant_range = [-min_diff, max_diff]
-    if type(illuminant_range) in (list, tuple):
-        if len(illuminant_range) == 1:
-            ill_val = illuminant_range[0]
-        else:
-            ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
-    else:
-        ill_val = illuminant_range
-
     if mask_image == 'gaussian':
         mean_val = 0.5
         img0 -= mean_val
@@ -238,6 +225,19 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img1 -= mean_val
         img1 = img1 * _gauss_img(img1.shape)
         img1 += mean_val
+
+    # getting the illuminant
+    if illuminant is None:
+        min_diff = min(img0.min() - 0, img1.min() - 0)
+        max_diff = min(1 - img0.max(), 1 - img1.max())
+        illuminant = [-min_diff, max_diff]
+    if type(illuminant) in (list, tuple):
+        if len(illuminant) == 1:
+            ill_val = illuminant[0]
+        else:
+            ill_val = np.random.uniform(low=illuminant[0], high=illuminant[1])
+    else:
+        ill_val = illuminant
 
     # we simulate the illumination with addition
     img0 += ill_val
@@ -277,7 +277,7 @@ def _cv2_loader(path):
 class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5, contrasts=None,
                  same_transforms=False, colour_space='grey', vision_type='trichromat',
-                 mask_image=None, illuminant_range=1.0, train_params=None, sf_filter=None,
+                 mask_image=None, illuminant=0.0, train_params=None, sf_filter=None,
                  contrast_space='rgb', grating_detector=False):
         self.p = p
         self.contrasts = contrasts
@@ -287,7 +287,7 @@ class AfcDataset(object):
         self.mask_image = mask_image
         self.post_transform = post_transform
         self.pre_transform = pre_transform
-        self.illuminant_range = illuminant_range
+        self.illuminant = illuminant
         if train_params is None:
             self.train_params = train_params
         else:
@@ -311,7 +311,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, sf_filter=self.sf_filter, contrast_space=self.contrast_space,
+            self.illuminant, sf_filter=self.sf_filter, contrast_space=self.contrast_space,
             grating_detector=self.grating_detector
         )
 
@@ -344,7 +344,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
+            self.illuminant, current_param=current_param, sf_filter=self.sf_filter,
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
@@ -456,7 +456,7 @@ class BinaryShapes(AfcDataset, ShapeTrain):
         img_out, contrast_target, img_settings = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts, self.mask_image,
             self.pre_transform, self.post_transform, self.same_transforms, self.p,
-            self.illuminant_range, current_param=current_param, sf_filter=self.sf_filter,
+            self.illuminant, current_param=current_param, sf_filter=self.sf_filter,
             contrast_space=self.contrast_space, grating_detector=self.grating_detector
         )
 
@@ -467,18 +467,18 @@ class BinaryShapes(AfcDataset, ShapeTrain):
 
 
 def _create_samples(samples):
-    if 'illuminant_range' in samples:
-        illuminant_range = samples['illuminant_range']
-        del samples['illuminant_range']
+    if 'illuminant' in samples:
+        illuminant = samples['illuminant']
+        del samples['illuminant']
     else:
-        illuminant_range = 1.0
+        illuminant = 0.0
     settings = samples
     settings['lenghts'] = (
         len(settings['amp']), len(settings['lambda_wave']),
         len(settings['theta']), len(settings['rho']), len(settings['side'])
     )
     num_samples = np.prod(np.array(settings['lenghts']))
-    return num_samples, settings, illuminant_range
+    return num_samples, settings, illuminant
 
 
 def _random_grating(target_size, contrast0):
@@ -531,7 +531,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         if type(samples) is dict:
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
-            self.samples, self.settings, self.illuminant_range = _create_samples(samples)
+            self.samples, self.settings, self.illuminant = _create_samples(samples)
         else:
             self.samples = samples
             self.settings = None
@@ -559,14 +559,8 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                 contrast0, contrast1 = self.contrasts
 
             # randomising the parameters
-            if self.theta is None:
-                theta = random.choice([0, 45, 90, 135])
-            else:
-                theta = self.theta
-            if self.rho is None:
-                rho = random.choice([0, 180])
-            else:
-                rho = self.rho
+            theta = random.choice([0, 45, 90, 135]) if self.theta is None else self.theta
+            rho = random.choice([0, 180]) if self.rho is None else self.rho
             if self.lambda_wave is None:
                 lambda_wave = random.uniform(np.pi / 2, np.pi * 10)
             else:
@@ -590,14 +584,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         img0 = stimuli_bank.sinusoid_grating(**sinusoid_param)
         sinusoid_param['amp'] = contrast1
         img1 = stimuli_bank.sinusoid_grating(**sinusoid_param)
-
-        # if target size is even, the generated stimuli is 1 pixel larger.
-        if np.mod(self.target_size[0], 2) == 0:
-            img0 = img0[:-1]
-            img1 = img1[:-1]
-        if np.mod(self.target_size[1], 2) == 0:
-            img0 = img0[:, :-1]
-            img1 = img1[:, :-1]
 
         img0 = _convert_other_params(img0, theta, rho)
         img1 = _convert_other_params(img1, theta, rho)
@@ -632,9 +618,18 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
-        # multiplying with the illuminant value
-        img0 *= self.illuminant_range
-        img1 *= self.illuminant_range
+
+        # we simulate the illumination with addition
+        img0 += self.illuminant
+        img1 += self.illuminant
+
+        # if target size is even, the generated stimuli is 1 pixel larger.
+        if np.mod(self.target_size[0], 2) == 0:
+            img0 = img0[:-1]
+            img1 = img1[:-1]
+        if np.mod(self.target_size[1], 2) == 0:
+            img0 = img0[:, :-1]
+            img1 = img1[:, :-1]
 
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)

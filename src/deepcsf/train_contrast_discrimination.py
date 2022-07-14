@@ -117,7 +117,7 @@ def _main_worker(args):
     if args.train_params is not None:
         args.workers = 0
         shuffle = False
-        args.illuminant_range = 1.0
+        args.illuminant = 0.0
     else:
         shuffle = True
 
@@ -131,7 +131,7 @@ def _main_worker(args):
         'vision_type': args.vision_type,
         'mask_image': args.mask_image,
         'contrasts': args.contrasts,
-        'illuminant_range': args.illuminant_range,
+        'illuminant_range': args.illuminant,
         'train_params': args.train_params,
         'sf_filter': args.sf_filter,
         'contrast_space': args.contrast_space,
