@@ -585,9 +585,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         sinusoid_param['amp'] = contrast1
         img1 = stimuli_bank.sinusoid_grating(**sinusoid_param)
 
-        img0 = _convert_other_params(img0, theta, rho)
-        img1 = _convert_other_params(img1, theta, rho)
-
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
             radius = (int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0))
@@ -630,6 +627,10 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         if np.mod(self.target_size[1], 2) == 0:
             img0 = img0[:, :-1]
             img1 = img1[:, :-1]
+
+        # if theta and rho are different from 0
+        img0 = _convert_other_params(img0, theta, rho)
+        img1 = _convert_other_params(img1, theta, rho)
 
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
