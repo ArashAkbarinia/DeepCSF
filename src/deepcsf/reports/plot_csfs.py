@@ -105,6 +105,32 @@ def _instances_summary(instances, std=True):
     return net_results
 
 
+def _report_chn_csf(net_results, chn_name, model_info):
+    chn_summary = net_results[chn_name]
+
+    correlations = []
+    distances = []
+    for i in range(len(chn_summary)):
+        # getting the x and y values
+        org_yvals = np.array(chn_summary[i]['sens'])
+        org_freqs = np.array(chn_summary[i]['freq'])
+
+        # first compute the human CSF
+        model_name, _ = model_info
+        hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name)
+        hcsf_sens /= hcsf_sens.max()
+        hcsf_sens *= np.max(org_yvals)
+
+        # use interpolation for correlation
+        hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
+        p_corr, r_corr = stats.pearsonr(org_yvals, hcsf_sens)
+        euc_dis = np.linalg.norm(hcsf_sens - org_yvals)
+        correlations.append(p_corr)
+        distances.append(euc_dis)
+
+    return correlations, distances
+
+
 def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='max',
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
                   legend_loc='lower center', font_size=16):
@@ -201,3 +227,12 @@ def plot_csf_instances(paths, std, area_suf=None, chns=None, **kwargs):
             kwargs['model_info'] = None
         net_csf_fig = _plot_chn_csf(net_results, chn_key, **kwargs)
     return net_csf_fig
+
+
+def report_csf_areas(paths, area_suf=None, chns=None, **kwargs):
+    net_results = _load_network_results(paths, chns=chns, area_suf=area_suf)
+    report_summary = dict()
+    for chn_key in net_results.keys():
+        p_corr, euc_dis = _report_chn_csf(net_results, chn_key, **kwargs)
+        report_summary[chn_key] = {'corr': p_corr, 'dist': euc_dis}
+    return net_results, report_summary

@@ -77,11 +77,12 @@ def imagenet_category_inds():
     return class_inds
 
 
-def plot_sf_ring_net(net_dir, dataset,
+def plot_sf_ring_net(net_dir, dataset, accs=None,
                      figsize=(8, 6), font_size=16, legend_loc='best',
                      log_axis=False, model_csf=None, normalise=False,
                      net_name=None, old_fig=None, plot_params=None):
-    accs = _get_sf_ring_accuracies(net_dir, dataset)
+    if accs is None:
+        accs = _get_sf_ring_accuracies(net_dir, dataset)
     num_freqs = len(accs)
 
     xaxis = [e / (num_freqs / 60) for e in range(1, num_freqs + 1)]
@@ -103,13 +104,13 @@ def plot_sf_ring_net(net_dir, dataset,
 
     ax.set_title(net_name, **{'size': font_size})
 
+    org_freqs = [e / 2 for e in range(1, 120)]
     if model_csf == 'model_fest':
         model_fest_path = '/home/arash/Desktop/projects/deep_csf/model_fest/extracted_avg.csv'
         hcsf_data = np.loadtxt(model_fest_path, delimiter=',')
         xaxis = hcsf_data[0]
         hcsf = hcsf_data[1]
     elif model_csf is not None:
-        org_freqs = [e / 2 for e in range(1, 120)]
         hcsf = np.array([animal_csfs.csf(f, model_csf) for f in org_freqs])
         hcsf /= hcsf.max()
 
