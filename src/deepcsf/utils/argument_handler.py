@@ -24,13 +24,6 @@ def train_arg_parser(argvs, extra_args_fun=None):
         help='Path to a predefined set of parameters (default: None)'
     )
     misc_group.add_argument(
-        '--illuminant',
-        default=None,
-        nargs='+',
-        type=float,
-        help='Illuminant value in the range of -0.5 to 0.5 (default: None)'
-    )
-    misc_group.add_argument(
         '--sf_filter',
         default=None,
         nargs='+',
@@ -305,6 +298,13 @@ def _add_input_group(parser):
         nargs='+',
         type=float,
         help='The contrasts to be tested (default: None)'
+    )
+    input_group.add_argument(
+        '--illuminant',
+        default=None,
+        nargs='+',
+        type=float,
+        help='Illuminant value in the range of -0.5 to 0.5 (default: None)'
     )
 
 
