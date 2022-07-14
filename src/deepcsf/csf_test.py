@@ -57,15 +57,19 @@ def main(argv):
     colour_space = args.colour_space
     target_size = args.target_size
 
-    res_out_dir = os.path.join(args.output_dir, 'evals')
+    # which illuminant to test
+    illuminant = 0 if args.illuminant is None else args.illuminant[0]
+    ill_suffix = '' if illuminant == 0 else '_%d' % int(illuminant * 100)
+
+    res_out_dir = os.path.join(args.output_dir, 'evals%s' % ill_suffix)
+
     system_utils.create_dir(res_out_dir)
     out_file = '%s/%s_evolution.csv' % (res_out_dir, args.experiment_name)
     if os.path.exists(out_file):
         return
 
-    args.tb_writers = {
-        'test': SummaryWriter(os.path.join(args.output_dir, 'test_' + args.experiment_name))
-    }
+    tb_path = os.path.join(args.output_dir, 'test_%s%s' % (args.experiment_name, ill_suffix))
+    args.tb_writers = {'test': SummaryWriter(tb_path)}
 
     preprocess = model_utils.get_mean_std(args.colour_space, args.vision_type)
     args.mean, args.std = preprocess
@@ -114,7 +118,6 @@ def main(argv):
     header = 'LambdaWave,SF,ACC,Contrast'
     all_results = []
     tb_writer = args.tb_writers['test']
-    illuminant = 0 if args.illuminant is None else args.illuminant[0]
     for i in range(len(csf_flags)):
         low = min_low
         high = max_high
