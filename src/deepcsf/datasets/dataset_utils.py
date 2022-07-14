@@ -613,13 +613,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img0 *= gauss_img
             img1 *= gauss_img
 
-        img0 = (img0 + 1) / 2
-        img1 = (img1 + 1) / 2
-
-        # we simulate the illumination with addition
-        img0 += self.illuminant
-        img1 += self.illuminant
-
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
             img0 = img0[:-1]
@@ -631,6 +624,13 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         # if theta and rho are different from 0
         img0 = _convert_other_params(img0, theta, rho)
         img1 = _convert_other_params(img1, theta, rho)
+
+        img0 = (img0 + 1) / 2
+        img1 = (img1 + 1) / 2
+
+        # we simulate the illumination with addition
+        img0 += self.illuminant
+        img1 += self.illuminant
 
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
