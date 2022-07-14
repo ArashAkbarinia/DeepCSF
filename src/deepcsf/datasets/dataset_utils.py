@@ -229,19 +229,19 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             ill_val = np.random.uniform(low=illuminant_range[0], high=illuminant_range[1])
     else:
         ill_val = illuminant_range
-    # we simulate the illumination with addition
-    # is ill_val is very small, the image becomes very dark
-    img0 += ill_val
-    img1 += ill_val
-    half_ill = ill_val / 2
 
     if mask_image == 'gaussian':
-        img0 -= half_ill
+        mean_val = 0.5
+        img0 -= mean_val
         img0 = img0 * _gauss_img(img0.shape)
-        img0 += half_ill
-        img1 -= half_ill
+        img0 += mean_val
+        img1 -= mean_val
         img1 = img1 * _gauss_img(img1.shape)
-        img1 += half_ill
+        img1 += mean_val
+
+    # we simulate the illumination with addition
+    img0 += ill_val
+    img1 += ill_val
 
     if post_transform is not None:
         img0, img1 = post_transform([img0, img1])
