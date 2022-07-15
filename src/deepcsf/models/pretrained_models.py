@@ -99,8 +99,38 @@ class ViTLayers(nn.Module):
         return x
 
 
+class ViTClipLayers(nn.Module):
+    def __init__(self, parent_model, encoder_layer):
+        super().__init__()
+        self.parent_model = parent_model
+        block = encoder_layer + 1
+        self.parent_model.transformer.resblocks = self.parent_model.transformer.resblocks[:block]
+        del self.parent_model.proj
+        del self.parent_model.ln_post
+
+    def forward(self, x):
+        x = self.parent_model.conv1(x)  # shape = [*, width, grid, grid]
+        x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
+        x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
+        x = torch.cat(
+            [self.parent_model.class_embedding.to(x.dtype) + torch.zeros(
+                x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device),
+             x], dim=1
+        )  # shape = [*, grid ** 2 + 1, width]
+        x = x + self.parent_model.positional_embedding.to(x.dtype)
+        x = self.parent_model.ln_pre(x)
+
+        x = x.permute(1, 0, 2)  # NLD -> LND
+        x = self.parent_model.transformer(x)
+        x = x.permute(1, 0, 2)  # LND -> NLD
+
+        x = x[:, 0, :]
+
+        return x
+
+
 def vit_features(model, layer, target_size):
-    encoder_layer = int(layer.replace('encoder', '')) + 1
+    encoder_layer = int(layer.replace('encoder', ''))
     features = ViTLayers(model, encoder_layer)
     org_classes = generic_features_size(features, target_size)
     return features, org_classes
@@ -121,16 +151,19 @@ def vgg_features(model, layer, target_size):
     return features, org_classes
 
 
-def generic_features_size(model, target_size):
+def generic_features_size(model, target_size, dtype=None):
     img = np.random.randint(0, 256, (target_size, target_size, 3)).astype('float32') / 255
     img = torchvis_fun.to_tensor(img).unsqueeze(0)
+    if dtype is not None:
+        img = img.cuda()
+        img = img.type(dtype)
     model.eval()
     with torch.no_grad():
         out = model(img)
     return np.prod(out[0].shape)
 
 
-def clip_features(model, network_name, layer):
+def clip_features(model, network_name, layer, target_size):
     if layer == 'encoder':
         features = model
         if 'B32' in network_name or 'B16' in network_name or 'RN101' in network_name:
@@ -158,6 +191,10 @@ def clip_features(model, network_name, layer):
             layer = 12
             org_classes = 100352
         features = nn.Sequential(*list(model.children())[:layer])
+    else:
+        block_layer = int(layer.replace('block', ''))
+        features = ViTClipLayers(model, block_layer)
+        org_classes = generic_features_size(features, target_size, model.conv1.weight.dtype)
     return features, org_classes
 
 

@@ -70,7 +70,8 @@ class CSFNetwork(nn.Module):
         elif 'vit_' in architecture:
             features, org_classes = pretrained_models.vit_features(model, layer, target_size)
         elif 'clip' in architecture:
-            features, org_classes = pretrained_models.clip_features(model, architecture, layer)
+            features, org_classes = pretrained_models.clip_features(
+                model, architecture, layer, target_size)
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
