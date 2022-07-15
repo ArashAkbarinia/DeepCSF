@@ -629,21 +629,38 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         img1 = (img1 + 1) / 2
 
         # we simulate the illumination with addition
-        img0 += self.illuminant
-        img1 += self.illuminant
+        if self.contrast_space in ['grey', 'rgb', 'lum', 'lum_yog']:
+            img0 += self.illuminant
+            img1 += self.illuminant
 
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
-            if self.contrast_space == 'yb':
-                img0[:, :, [0, 1]] = 0.5
+
+            # if rg or yb change only the luminance level
+            if self.contrast_space in ['rg', 'yb', 'rg_yog', 'yb_yog']:
+                img0[:, :, 0] = (0.5 + self.illuminant)
+                img1[:, :, 0] = (0.5 + self.illuminant)
+
+            if self.contrast_space == 'yb_yog':
+                img0[:, :, 2] = 0.5
+                img0 = colour_spaces.yog012rgb01(img0)
+                img1[:, :, 2] = 0.5
+                img1 = colour_spaces.yog012rgb01(img1)
+            elif self.contrast_space == 'rg_yog':
+                img0[:, :, 1] = 0.5
+                img0 = colour_spaces.yog012rgb01(img0)
+                img1[:, :, 1] = 0.5
+                img1 = colour_spaces.yog012rgb01(img1)
+            elif self.contrast_space == 'yb':
+                img0[:, :, 1] = 0.5
                 img0 = colour_spaces.dkl012rgb01(img0)
-                img1[:, :, [0, 1]] = 0.5
+                img1[:, :, 1] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
             elif self.contrast_space == 'rg':
-                img0[:, :, [0, 2]] = 0.5
+                img0[:, :, 2] = 0.5
                 img0 = colour_spaces.dkl012rgb01(img0)
-                img1[:, :, [0, 2]] = 0.5
+                img1[:, :, 2] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
             elif self.contrast_space == 'lum':
                 # this is really not necessary, but just for the sake of floating point
@@ -651,7 +668,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [1, 2]] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
-            elif self.contrast_space != 'rgb':
+            elif self.contrast_space not in ['rgb', 'lum_yog']:
                 sys.exit('Contrast %s not supported' % self.contrast_space)
 
         if 'grey' not in self.colour_space and self.vision_type != 'trichromat':

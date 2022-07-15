@@ -169,12 +169,6 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
 
             # use interpolation for correlation
             hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
-            # int_freqs = np.array(chn_summary[i][0]['unique_params']['sf_int'])
-            # hcsf_sens = np.array([animal_csfs.csf(f, model_name) for f in int_freqs])
-            # hcsf_sens /= hcsf_sens.max()
-            #
-            # int_yvals = np.array(chn_summary[i][0]['sensitivities']['all_int'])
-            # int_yvals /= int_yvals.max()
             p_corr, r_corr = stats.pearsonr(org_yvals, hcsf_sens)
             if not legend:
                 suffix_label = ''
