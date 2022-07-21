@@ -56,17 +56,18 @@ def _load_network_results(path, chns=None, area_suf=None):
 def _chn_plot_params(chn_name):
     label = chn_name
     kwargs = {}
-    if chn_name in ['lum']:
+    if chn_name in ['lum', 'lum_yog']:
         colour = 'gray'
+        label = 'lum'
         kwargs = {'color': colour, 'marker': 'o', 'linestyle': '-'}
-    elif chn_name == 'rg':
+    elif chn_name in ['rg', 'rg_yog']:
         colour = 'green'
         label = 'rg   '
         kwargs = {
             'color': colour, 'marker': '^', 'linestyle': '-',
             'markerfacecolor': 'r', 'markeredgecolor': 'r'
         }
-    elif chn_name == 'yb':
+    elif chn_name in ['yb', 'yb_yog']:
         colour = 'blue'
         label = 'yb   '
         kwargs = {

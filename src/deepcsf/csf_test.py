@@ -159,7 +159,7 @@ def main(argv):
                 # testing whether this illuminant results values in the range of 0-1
                 min_diff = csf_flags[i] - 0.5
                 max_diff = 0.5 - csf_flags[i]
-                if illuminant < min_diff or illuminant > max_diff:
+                if illuminant < min(min_diff, max_diff) or illuminant > max(min_diff, max_diff):
                     print('Ill %.3f not possible for contrast %.3f' % (illuminant, csf_flags[i]))
                     csf_flags[i] = None
             j += 1
