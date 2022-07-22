@@ -12,12 +12,29 @@ def generic_model(f, k1, k2, alpha, beta):
 
 
 def model_fest(fs):
-    frequency = np.array([fs[0], 1.12, 2, 2.83, 4, 5.66, 8, 11.3, 16, 22.6, 30, fs[-1]])
+    frequency = np.array([0.5, 1.12, 2, 2.83, 4, 5.66, 8, 11.3, 16, 22.6, 30, 56])
+    # for sf=1.12 1.82095312?
     sensitivity = np.array(
-        [csf(fs[0], method='uhlrich'), 1.82095312, 1.9603125, 2.06315625, 2.10648437, 1.99190625,
-         1.84360937, 1.62089063, 1.29775, 0.95945312, 0.56746875, csf(fs[-1], method='uhlrich')]
+        [0.631945311, 1.053242185, 1.9603125, 2.06315625, 2.10648437, 1.99190625,
+         1.84360937, 1.62089063, 1.29775, 0.95945312, 0.56746875, 0.1]
     )
     return frequency, sensitivity
+
+
+def rg_csf():
+    frequency = [0.5, 1, 2, 3, 5, 7, 10, 30, 56]
+    sensitivity = np.array([1, 0.9, 0.7, 0.5, 0.27, 0.14, 0.02, 1e-2, 1e-2]) * 0.7
+    return frequency, sensitivity
+
+
+def yb_csf():
+    frequency = [0.5, 1, 2, 3, 5, 7, 10, 30, 56]
+    sensitivity = np.array([1, 0.85, 0.6, 0.4, 0.2, 0.02, 0.01, 1e-2, 1e-2]) * 0.525
+    return frequency, sensitivity
+
+
+def chromatic_csf(chn):
+    return rg_csf() if chn == 'rg' else yb_csf()
 
 
 def get_csf(frequency, method='model_fest'):

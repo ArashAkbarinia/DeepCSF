@@ -210,7 +210,7 @@ def plot_csf_areas(path, chns=None, exclude=None, **kwargs):
     for chn_key in net_results.keys():
         if net_csf_fig is not None:
             kwargs['old_fig'] = net_csf_fig
-            kwargs['model_info'] = None
+            # kwargs['model_info'] = None
         net_csf_fig = _plot_chn_csf(net_results, chn_key, **kwargs)
     return net_csf_fig
 
@@ -222,7 +222,7 @@ def plot_csf_instances(paths, std, area_suf=None, chns=None, exclude=None, **kwa
     for chn_key in net_results.keys():
         if net_csf_fig is not None:
             kwargs['old_fig'] = net_csf_fig
-            kwargs['model_info'] = None
+            # kwargs['model_info'] = None
         net_csf_fig = _plot_chn_csf(net_results, chn_key, **kwargs)
     return net_csf_fig
 
