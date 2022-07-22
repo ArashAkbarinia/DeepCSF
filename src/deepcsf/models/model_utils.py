@@ -110,13 +110,9 @@ def which_architecture(network_name, customs=None):
 
 def which_network(network_name, task_type, **kwargs):
     if task_type == 'classification':
-        model = which_network_classification(
-            network_name, **kwargs
-        )
+        model = which_network_classification(network_name, **kwargs)
     elif task_type == 'segmentation':
-        model = which_network_segmentation(
-            network_name, **kwargs
-        )
+        model = which_network_segmentation(network_name, **kwargs)
     else:
         sys.exit('Task type %s is not supported.' % task_type)
     return model

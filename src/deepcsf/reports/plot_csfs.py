@@ -27,7 +27,7 @@ def extract_csf(file_path):
     return np.array(frequency) / 2, 1 / np.array(sensitivity)
 
 
-def _load_network_results(path, chns=None, area_suf=None):
+def _load_network_results(path, chns=None, area_suf=None, exclude=None):
     if area_suf is None:
         area_suf = ''
     net_results = dict()
@@ -39,6 +39,9 @@ def _load_network_results(path, chns=None, area_suf=None):
         file_paths = sorted(
             glob.glob('%s/*%s*.csv' % (chns_dir, area_suf)), key=report_utils.natural_keys
         )
+        if exclude is not None:
+            for exclude_i in exclude:
+                file_paths = [e for e in file_paths if exclude_i not in e]
         # move fc to the last element
         if '%sfc.csv' % chns_dir in file_paths:
             file_paths.remove('%sfc.csv' % chns_dir)
@@ -201,8 +204,8 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
     return fig
 
 
-def plot_csf_areas(path, chns=None, **kwargs):
-    net_results = _load_network_results(path, chns=chns)
+def plot_csf_areas(path, chns=None, exclude=None, **kwargs):
+    net_results = _load_network_results(path, chns=chns, exclude=exclude)
     net_csf_fig = None
     for chn_key in net_results.keys():
         if net_csf_fig is not None:
@@ -212,8 +215,8 @@ def plot_csf_areas(path, chns=None, **kwargs):
     return net_csf_fig
 
 
-def plot_csf_instances(paths, std, area_suf=None, chns=None, **kwargs):
-    instances = [_load_network_results(path, chns=chns, area_suf=area_suf) for path in paths]
+def plot_csf_instances(paths, std, area_suf=None, chns=None, exclude=None, **kwargs):
+    instances = [_load_network_results(path, chns, area_suf, exclude) for path in paths]
     net_results = _instances_summary(instances, std)
     net_csf_fig = None
     for chn_key in net_results.keys():
