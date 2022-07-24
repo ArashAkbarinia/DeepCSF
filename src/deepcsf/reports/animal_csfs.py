@@ -34,15 +34,20 @@ def yb_csf():
 
 
 def chromatic_csf(chn):
-    return rg_csf() if chn == 'rg' else yb_csf()
+    return rg_csf() if 'rg' in chn else yb_csf()
 
 
-def get_csf(frequency, method='model_fest'):
-    if method == 'model_fest':
-        frequency, sensitivity = model_fest(frequency)
+def get_csf(frequency, method='model_fest', chn='lum'):
+    if 'lum' in chn:
+        if method == 'model_fest':
+            frequency, sensitivity = model_fest(frequency)
+        else:
+            sensitivity = [csf(f, method=method) for f in frequency]
+        sensitivity = np.array(sensitivity)
+        sensitivity /= sensitivity.max()
     else:
-        sensitivity = [csf(f, method=method) for f in frequency]
-    return np.array(frequency), np.array(sensitivity)
+        frequency, sensitivity = chromatic_csf(chn)
+    return np.array(frequency), sensitivity
 
 
 def csf(f, method='uhlrich'):

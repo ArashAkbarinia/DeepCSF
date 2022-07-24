@@ -60,7 +60,7 @@ def _chn_plot_params(chn_name):
     label = chn_name
     kwargs = {}
     if chn_name in ['lum', 'lum_yog']:
-        colour = 'gray'
+        colour = 'black'
         label = 'lum'
         kwargs = {'color': colour, 'marker': 'o', 'linestyle': '-'}
     elif chn_name in ['rg', 'rg_yog']:
@@ -121,8 +121,7 @@ def _report_chn_csf(net_results, chn_name, model_info):
 
         # first compute the human CSF
         model_name, _ = model_info
-        hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name)
-        hcsf_sens /= hcsf_sens.max()
+        hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name, chn=chn_name)
         hcsf_sens *= np.max(org_yvals)
 
         # use interpolation for correlation
@@ -137,7 +136,7 @@ def _report_chn_csf(net_results, chn_name, model_info):
 
 def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='max',
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
-                  legend_loc='lower center', font_size=16):
+                  legend_loc='upper right', font_size=16):
     chn_summary = net_results[chn_name]
     num_tests = len(chn_summary)
     fig = plt.figure(figsize=(figwidth * num_tests, 5)) if old_fig is None else old_fig
@@ -164,12 +163,18 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
         if model_info is not None:
             model_name, plot_model = model_info
             if plot_model:
-                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name)
-                hcsf_sens /= hcsf_sens.max()
-                hcsf_sens *= np.max(org_yvals)
-                ax.plot(hcsf_freq, hcsf_sens, '-x', color='black', label='human')
-                hcsf_inter = np.interp(org_freqs, hcsf_freq, hcsf_sens)
-                ax.plot(org_freqs, hcsf_inter, '--', color='black')
+                if 'lum' in chn_name:
+                    ax.plot([], [], '-x', color='gray', label="Human")
+
+                hcf_chn_params = chn_params.copy()
+                hcf_chn_params['marker'] = 'x'
+                hcf_chn_params['linestyle'] = '--'
+                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name, chn=chn_name)
+                # plotting only if normalised
+                # hcsf_sens *= np.max(org_yvals)
+                ax.plot(hcsf_freq, hcsf_sens, **hcf_chn_params)
+                # hcsf_inter = np.interp(org_freqs, hcsf_freq, hcsf_sens)
+                # ax.plot(org_freqs, hcsf_inter, '--', color='black')
 
             # use interpolation for correlation
             hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
