@@ -585,6 +585,18 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         sinusoid_param['amp'] = contrast1
         img1 = stimuli_bank.sinusoid_grating(**sinusoid_param)
 
+        # if target size is even, the generated stimuli is 1 pixel larger.
+        if np.mod(self.target_size[0], 2) == 0:
+            img0 = img0[:-1]
+            img1 = img1[:-1]
+        if np.mod(self.target_size[1], 2) == 0:
+            img0 = img0[:, :-1]
+            img1 = img1[:, :-1]
+
+        # if theta and rho are different from 0
+        img0 = _convert_other_params(img0, theta, rho)
+        img1 = _convert_other_params(img1, theta, rho)
+
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
             radius = (int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0))
@@ -609,21 +621,14 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             sigma = self.target_size[0] / 6
             gauss_img = np.exp(-(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2)))
 
+            if np.mod(self.target_size[0], 2) == 0:
+                gauss_img = gauss_img[:-1]
+            if np.mod(self.target_size[1], 2) == 0:
+                gauss_img = gauss_img[:, :-1]
             gauss_img = gauss_img / np.max(gauss_img)
+
             img0 *= gauss_img
             img1 *= gauss_img
-
-        # if target size is even, the generated stimuli is 1 pixel larger.
-        if np.mod(self.target_size[0], 2) == 0:
-            img0 = img0[:-1]
-            img1 = img1[:-1]
-        if np.mod(self.target_size[1], 2) == 0:
-            img0 = img0[:, :-1]
-            img1 = img1[:, :-1]
-
-        # if theta and rho are different from 0
-        img0 = _convert_other_params(img0, theta, rho)
-        img1 = _convert_other_params(img1, theta, rho)
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
