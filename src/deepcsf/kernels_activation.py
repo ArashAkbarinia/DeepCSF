@@ -12,9 +12,9 @@ from skimage import io
 
 import torchvision.transforms as torch_transforms
 
-from .datasets import stimuli_bank, cv2_transforms, colour_spaces
+from .datasets import stimuli_bank, cv2_transforms
 from .models import pretrained_models, model_utils, lesion_utils
-from .utils import report_utils, system_utils, argument_handler
+from .utils import report_utils, system_utils, argument_handler, colour_spaces
 
 
 def _get_activation(name, acts_dict):
