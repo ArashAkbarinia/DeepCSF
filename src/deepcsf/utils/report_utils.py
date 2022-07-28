@@ -51,7 +51,7 @@ def accuracy_preds(output, target, topk=(1,)):
 def accuracy(output, target, topk=(1,)):
     if output.shape[1] == 1:
         acc = (output > 0) == target
-        acc = [acc.float().mean(0, keepdim=True)[0]]
+        acc = [acc.float().mean(0, keepdim=True)[0] * 100]
         return acc
     res, _ = accuracy_preds(output, target, topk=topk)
     return res
