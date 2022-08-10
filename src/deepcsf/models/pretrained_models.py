@@ -176,19 +176,19 @@ def clip_features(model, network_name, layer, target_size):
             org_classes = 1024
     elif network_name.replace('clip_', '') in ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64']:
         if layer == 'area0':
-            layer = 8
+            layer = 10
             org_classes = 200704
         elif layer == 'area1':
-            layer = 9
+            layer = 11
             org_classes = 802816
         elif layer == 'area2':
-            layer = 10
+            layer = 12
             org_classes = 401408
         elif layer == 'area3':
-            layer = 11
+            layer = 13
             org_classes = 200704
         elif layer == 'area4':
-            layer = 12
+            layer = 14
             org_classes = 100352
         features = nn.Sequential(*list(model.children())[:layer])
     else:
