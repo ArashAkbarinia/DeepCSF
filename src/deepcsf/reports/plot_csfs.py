@@ -15,16 +15,20 @@ from ..utils import report_utils
 def extract_csf(file_path):
     results = np.loadtxt(file_path, delimiter=',')
     frequency = np.unique(results[:, 1])
+    psfs = {'contrast': [], 'accs': []}
     sensitivity = []
     for f in frequency:
         f_inds = results[:, 1] == f
         f_results = results[f_inds]
         # there is a range of contrasts with accuracy=0.75, we take the mean
+        # psfs['accs'].append(np.interp(psfs['contrast'], f_results[:, 1], f_results[:, 2]))
+        psfs['contrast'].append(f_results[:, 3])
+        psfs['accs'].append(f_results[:, 2])
         l_inds = f_results[:, 2] == 0.75
         high_sens = f_results[-1][-1]
         low_sens = f_results[l_inds][0][-1] if np.sum(l_inds) > 0 else high_sens
         sensitivity.append((low_sens + high_sens) / 2)
-    return np.array(frequency) / 2, 1 / np.array(sensitivity)
+    return np.array(frequency) / 2, 1 / np.array(sensitivity), psfs
 
 
 def _load_network_results(path, chns=None, area_suf=None, exclude=None):
@@ -48,8 +52,8 @@ def _load_network_results(path, chns=None, area_suf=None, exclude=None):
             file_paths.append('%sfc.csv' % chns_dir)
         for file_path in file_paths:
             area_name = ntpath.basename(file_path)[:-4]
-            frequency, sensitivity = extract_csf(file_path)
-            chn_res.append({'freq': frequency, 'sens': sensitivity, 'name': area_name})
+            frequency, sensitivity, psfs = extract_csf(file_path)
+            chn_res.append({'freq': frequency, 'sens': sensitivity, 'name': area_name, 'psf': psfs})
             # if results were read add it to dictionary
             if len(chn_res) > 0:
                 net_results[chn_name] = chn_res
@@ -169,7 +173,8 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
                 hcf_chn_params = chn_params.copy()
                 hcf_chn_params['marker'] = 'x'
                 hcf_chn_params['linestyle'] = '--'
-                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name, chn=chn_name)
+                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name,
+                                                           chn=chn_name)
                 # plotting only if normalised
                 # hcsf_sens *= np.max(org_yvals)
                 ax.plot(hcsf_freq, hcsf_sens, **hcf_chn_params)
