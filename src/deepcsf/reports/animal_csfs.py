@@ -50,23 +50,19 @@ def get_csf(frequency, method='model_fest', chn='lum'):
     return np.array(frequency), sensitivity
 
 
-def csf(f, method='uhlrich'):
-    if method == 'uhlrich':
-        org_f = f
-        if org_f < 1:
-            f = 1
-        sensitivity = generic_model(f, k1=295.42, k2=295.92, alpha=0.03902, beta=0.0395)
-        if org_f < 1:
-            sensitivity = sensitivity * org_f
-        return sensitivity
-    elif method == 'falcon':
-        f = f * 2
-        org_f = f
-        if org_f < 1:
-            f = 1
-        sensitivity = generic_model(f, k1=424.83, k2=424.87, alpha=0.00953, beta=0.00961)
-        if org_f < 1:
-            sensitivity = sensitivity * org_f
+def csf(f, method='human'):
+    uhlrich_pars = {
+        'human': [295.42, 295.92, 0.03902, 0.03958],
+        'cat': [1.6847, 2.8457, 0.2278, 2.0526],
+        'falcon': [424.83, 424.87, 0.00953, 0.00961],
+        'goldfish': [2.1411, 2.4682, 0.4840, 0.9219],
+        'macaque': [246.14, 246.36, 0.03908, 0.03945],
+        'pigeon': [30.921, 30.934, 0.04500, 0.04536],
+        'owl': [2.4823, 2.5085, 0.2569, 0.2611]
+    }
+    if method in uhlrich_pars.keys():
+        param = uhlrich_pars[method]
+        sensitivity = generic_model(f, k1=param[0], k2=param[1], alpha=param[2], beta=param[3])
         return sensitivity
     else:
         return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
