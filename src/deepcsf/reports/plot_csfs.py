@@ -173,21 +173,20 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
                 hcf_chn_params = chn_params.copy()
                 hcf_chn_params['marker'] = 'x'
                 hcf_chn_params['linestyle'] = '--'
-                hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name,
-                                                           chn=chn_name)
+                hcf_freq, hcf_sens = animal_csfs.get_csf(org_freqs, method=model_name, chn=chn_name)
                 # plotting only if normalised
                 # hcsf_sens *= np.max(org_yvals)
-                ax.plot(hcsf_freq, hcsf_sens, **hcf_chn_params)
+                ax.plot(hcf_freq, hcf_sens, **hcf_chn_params)
                 # hcsf_inter = np.interp(org_freqs, hcsf_freq, hcsf_sens)
                 # ax.plot(org_freqs, hcsf_inter, '--', color='black')
 
             # use interpolation for correlation
-            hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
-            p_corr, r_corr = stats.pearsonr(org_yvals, hcsf_sens)
+            hcf_sens = np.interp(org_freqs, hcf_freq, hcf_sens)
+            p_corr, r_corr = stats.pearsonr(org_yvals, hcf_sens)
             if not legend:
                 suffix_label = ''
             elif legend_dis:
-                euc_dis = np.linalg.norm(hcsf_sens - org_yvals)
+                euc_dis = np.linalg.norm(hcf_sens - org_yvals)
                 suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
             else:
                 suffix_label = ' [r=%.2f]' % p_corr
