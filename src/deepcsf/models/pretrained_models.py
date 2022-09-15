@@ -217,6 +217,16 @@ def regnet_features(model, layer, target_size):
     return features, org_classes
 
 
+def convnext_features(model, layer, target_size):
+    if 'feature' in layer:
+        layer = int(layer.replace('feature', '')) + 1
+        features = nn.Sequential(*list(model.features.children())[:layer])
+    else:
+        sys.exit('Unsupported layer %s' % layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
 def resnet_features(model, network_name, layer, target_size):
     if layer == 'area0':
         layer = 4

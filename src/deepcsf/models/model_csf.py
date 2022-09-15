@@ -65,6 +65,8 @@ class CSFNetwork(nn.Module):
             )
         elif 'regnet' in architecture:
             features, org_classes = pretrained_models.regnet_features(model, layer, target_size)
+        elif 'convnext' in architecture:
+            features, org_classes = pretrained_models.convnext_features(model, layer, target_size)
         elif 'vgg' in architecture:
             features, org_classes = pretrained_models.vgg_features(model, layer, target_size)
         elif 'vit_' in architecture:
@@ -103,9 +105,9 @@ class ContrastDiscrimination(CSFNetwork):
         )
 
     def forward(self, x0, x1):
-        x0 = self.extract_features(x0)
+        x0 = self.extract_features(x0).contiguous()
         x0 = x0.view(x0.size(0), -1).float()
-        x1 = self.extract_features(x1)
+        x1 = self.extract_features(x1).contiguous()
         x1 = x1.view(x1.size(0), -1).float()
         x = torch.cat([x0, x1], dim=1)
         return self.do_classifier(x)
