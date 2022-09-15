@@ -359,7 +359,7 @@ class ShapeDataset(torch_data.Dataset):
         self.root = root
         self.target_size = (224, 224)
         self.mask_size = (128, 128)
-        self.imgdir = '%s/shape2D/' % self.root
+        self.imgdir = '%s/imgs/' % self.root
         self.bg = background
 
     def _prepare_out_imgs(self, bw_img, target_colour, place_fun):
