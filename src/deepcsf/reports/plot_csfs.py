@@ -50,6 +50,9 @@ def _load_network_results(path, chns=None, area_suf=None, exclude=None):
         if '%sfc.csv' % chns_dir in file_paths:
             file_paths.remove('%sfc.csv' % chns_dir)
             file_paths.append('%sfc.csv' % chns_dir)
+        if '%sstem.csv' % chns_dir in file_paths:
+            file_paths.remove('%sstem.csv' % chns_dir)
+            file_paths = ['%sstem.csv' % chns_dir, *file_paths]
         for file_path in file_paths:
             area_name = ntpath.basename(file_path)[:-4]
             frequency, sensitivity, psfs = extract_csf(file_path)
@@ -81,6 +84,8 @@ def _chn_plot_params(chn_name):
             'color': colour, 'marker': 's', 'linestyle': '-',
             'markerfacecolor': 'y', 'markeredgecolor': 'y'
         }
+    kwargs['linewidth'] = 6
+    kwargs['markersize'] = kwargs['linewidth'] * 3
     return label, kwargs
 
 
@@ -143,7 +148,7 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
                   legend_loc='upper right', font_size=16):
     chn_summary = net_results[chn_name]
     num_tests = len(chn_summary)
-    fig = plt.figure(figsize=(figwidth * num_tests, 5)) if old_fig is None else old_fig
+    fig = plt.figure(figsize=(figwidth * num_tests, figwidth * 0.8)) if old_fig is None else old_fig
 
     for i in range(num_tests):
         # getting the x and y values
@@ -168,7 +173,10 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
             model_name, plot_model = model_info
             if plot_model:
                 if 'lum' in chn_name:
-                    ax.plot([], [], '-x', color='gray', label="Human")
+                    ax.plot(
+                        [], [], '--x', color='gray', label="Human",
+                        linewidth=chn_params['linewidth'], markersize=chn_params['markersize']
+                    )
 
                 hcf_chn_params = chn_params.copy()
                 hcf_chn_params['marker'] = 'x'
@@ -199,8 +207,9 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
         else:
             ax.errorbar(org_freqs, org_yvals, org_error, label=chn_label, capsize=6, **chn_params)
 
-        ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size})
-        ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size})
+        if i == 0 and 'lum' in chn_name:
+            ax.set_xlabel('Spatial Frequency (Cycle/Image)', **{'size': font_size * 0.9})
+            ax.set_ylabel('Sensitivity (1/Contrast)', **{'size': font_size * 0.9})
         if log_axis:
             ax.set_xscale('log')
             ax.set_yscale(
@@ -209,7 +218,11 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
         if normalise is not None:
             ax.set_ylim([0, 1])
         if legend:
-            ax.legend(loc=legend_loc)
+            ax.legend(loc=legend_loc, prop={'size': font_size * 0.55},
+                      frameon=True, ncol=2, labelspacing=0.0, columnspacing=0.1,
+                      bbox_to_anchor=(-0.03, 0.55, 0.5, 0.5)
+                      )
+        ax.tick_params(axis='both', which='major', labelsize=font_size * 0.65)
     return fig
 
 

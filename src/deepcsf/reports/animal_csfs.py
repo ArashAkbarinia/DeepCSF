@@ -62,7 +62,11 @@ def csf(f, method='human'):
     }
     if method in uhlrich_pars.keys():
         param = uhlrich_pars[method]
-        sensitivity = generic_model(f, k1=param[0], k2=param[1], alpha=param[2], beta=param[3])
+        if method == 'human' and f < 1:
+            sensitivity = generic_model(1, k1=param[0], k2=param[1], alpha=param[2], beta=param[3])
+            sensitivity = sensitivity * f
+        else:
+            sensitivity = generic_model(f, k1=param[0], k2=param[1], alpha=param[2], beta=param[3])
         return sensitivity
     else:
         return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
