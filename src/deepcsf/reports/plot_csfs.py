@@ -143,9 +143,9 @@ def _report_chn_csf(net_results, chn_name, model_info):
     return correlations, distances
 
 
-def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='max',
+def _plot_chn_csf(net_results, chn_name, figwidth=10, log_axis=False, normalise='max',
                   model_info=None, old_fig=None, chn_info=None, legend_dis=False, legend=True,
-                  legend_loc='upper right', font_size=16):
+                  legend_loc='upper right', font_size=42):
     chn_summary = net_results[chn_name]
     num_tests = len(chn_summary)
     fig = plt.figure(figsize=(figwidth * num_tests, figwidth * 0.8)) if old_fig is None else old_fig
@@ -216,11 +216,11 @@ def _plot_chn_csf(net_results, chn_name, figwidth=7, log_axis=False, normalise='
                 'symlog', **{'linthresh': 10e-2, 'linscale': 0.25, 'subs': [*range(2, 10)]}
             )
         if normalise is not None:
-            ax.set_ylim([0, 1])
+            ax.set_ylim([0, 2.])
         if legend:
             ax.legend(loc=legend_loc, prop={'size': font_size * 0.55},
                       frameon=True, ncol=2, labelspacing=0.0, columnspacing=0.1,
-                      bbox_to_anchor=(-0.03, 0.55, 0.5, 0.5)
+                      bbox_to_anchor=(0.075, 0.52, 0.5, 0.5)
                       )
         ax.tick_params(axis='both', which='major', labelsize=font_size * 0.65)
     return fig
