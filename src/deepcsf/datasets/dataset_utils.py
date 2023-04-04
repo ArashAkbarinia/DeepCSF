@@ -502,20 +502,22 @@ def _random_grating(target_size, contrast0):
     return img0
 
 
-def _convert_other_params(img, theta, rho):
+def _convert_other_params(img, theta, rho, l_wave):
+    shift = 0
+    if rho == 180:
+        sf = int(np.ceil((0.5 * img.shape[0]) / (np.pi * l_wave)))
+        shift = int((90 / (sf * 180)) * img.shape[0])
     if theta == 0:
-        if rho == 180:
-            img = img[:, ::-1]
+        img = np.roll(img, shift, axis=1)
     elif theta == 90:
         img = img.transpose()
-        if rho == 180:
-            img = img[::-1]
+        img = np.roll(img, shift, axis=0)
     else:
         # theta 45
-        unique_vals = np.unique(img.round(decimals=4))
-        vals = [unique_vals[i % len(unique_vals)] for i in range(img.shape[0] * 2 - 1)]
+        vals = img[0].copy()
         if rho == 180:
-            vals = vals[::-1]
+            vals = np.roll(vals, shift)
+        vals = np.repeat(vals, 2)
         for i in range(img.shape[0]):
             for j in range(img.shape[1]):
                 img[i, j] = vals[i + j]
@@ -594,8 +596,8 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img1 = img1[:, :-1]
 
         # if theta and rho are different from 0
-        img0 = _convert_other_params(img0, theta, rho)
-        img1 = _convert_other_params(img1, theta, rho)
+        img0 = _convert_other_params(img0, theta, rho, lambda_wave)
+        img1 = _convert_other_params(img1, theta, rho, lambda_wave)
 
         # multiply it by gaussian
         if self.mask_image == 'fixed_size':
@@ -611,6 +613,10 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             gauss_img = omg ** 2 / (o2 * np.pi * k ** 2) * np.exp(
                 -omg ** 2 / (o1 * k ** 2) * (1 * x1 ** 2 + y1 ** 2))
 
+            if np.mod(self.target_size[0], 2) == 0:
+                gauss_img = gauss_img[:-1]
+            if np.mod(self.target_size[1], 2) == 0:
+                gauss_img = gauss_img[:, :-1]
             gauss_img = gauss_img / np.max(gauss_img)
             img0 *= gauss_img
             img1 *= gauss_img
