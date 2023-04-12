@@ -129,13 +129,14 @@ def _report_chn_csf(net_results, chn_name, model_info):
         org_freqs = np.array(chn_summary[i]['freq'])
 
         # first compute the human CSF
-        model_name, _ = model_info
+        model_name, _, metric = model_info
+        corr_fun = stats.spearmanr if metric == 'spearman' else stats.pearsonr
         hcsf_freq, hcsf_sens = animal_csfs.get_csf(org_freqs, method=model_name, chn=chn_name)
         hcsf_sens *= np.max(org_yvals)
 
         # use interpolation for correlation
         hcsf_sens = np.interp(org_freqs, hcsf_freq, hcsf_sens)
-        p_corr, r_corr = stats.pearsonr(org_yvals, hcsf_sens)
+        p_corr, r_corr = corr_fun(org_yvals, hcsf_sens)
         euc_dis = np.linalg.norm(hcsf_sens - org_yvals)
         correlations.append(p_corr)
         distances.append(euc_dis)
@@ -170,7 +171,8 @@ def _plot_chn_csf(net_results, chn_name, figwidth=10, log_axis=False, normalise=
 
         # first plot the human CSF
         if model_info is not None:
-            model_name, plot_model = model_info
+            model_name, plot_model, metric = model_info
+            corr_fun = stats.spearmanr if metric == 'spearman' else stats.pearsonr
             if plot_model:
                 if 'lum' in chn_name:
                     ax.plot(
@@ -190,7 +192,7 @@ def _plot_chn_csf(net_results, chn_name, figwidth=10, log_axis=False, normalise=
 
             # use interpolation for correlation
             hcf_sens = np.interp(org_freqs, hcf_freq, hcf_sens)
-            p_corr, r_corr = stats.pearsonr(org_yvals, hcf_sens)
+            p_corr, r_corr = corr_fun(org_yvals, hcf_sens)
             if not legend:
                 suffix_label = ''
             elif legend_dis:
