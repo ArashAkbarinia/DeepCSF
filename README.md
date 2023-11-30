@@ -8,6 +8,10 @@ as in human psychophysics. Read more at:
 [bioRxiv](https://www.biorxiv.org/content/biorxiv/early/2023/04/26/2023.01.06.523034.full.pdf)
 or [Neural Networks](https://www.sciencedirect.com/science/article/abs/pii/S0893608023002186)
 
+**A more generic version of the linear probing method used in this repository and manuscript is available in a pip package
+called [osculari](https://pypi.org/project/osculari/) [![PyPi Status](https://img.shields.io/pypi/v/osculari.svg)](https://pypi.org/project/osculari/). Use the [osculari package](https://github.com/ArashAkbarinia/osculari) 
+[![GitHub Latest Release)](https://img.shields.io/github/v/release/ArashAkbarinia/osculari?logo=github)](https://github.com/ArashAkbarinia/osculari) for any other psychophysical experiments you wish to conduct with pretrained deep networks.**
+
 # Usage
 
 ## Train the linear classifier contrast discriminator
